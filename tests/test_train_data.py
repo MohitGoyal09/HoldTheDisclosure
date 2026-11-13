@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from htd.train_data import (
+    chat_template_pairs,
     dpo_columns,
     filter_max_turn,
     filter_pair_types,
@@ -116,3 +117,36 @@ def test_train_aligntune_without_pair_types_uses_source_file(tmp_path, capsys):
     _train_aligntune().main(["--data", str(data), "--output", str(tmp_path / "o"), "--dry-run"])
     plan = json.loads(capsys.readouterr().out)
     assert plan["data"] == str(data) and "pair_types" not in plan
+
+
+class FakeTok:
+    """Minimal chat template: <bos>, then <role>content</s> per message, then <assistant> as the generation prompt."""
+
+    def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=False):
+        assert tokenize is False
+        text = "<bos>" + "".join(f"<{m['role']}>{m['content']}</s>" for m in messages)
+        return text + ("<assistant>" if add_generation_prompt else "")
+
+
+def test_chat_template_pairs_keeps_roles_and_splits_completion():
+    r = dict(row(), pair_type="drop")
+    out = chat_template_pairs([r], FakeTok())[0]
+    assert out["prompt"] == "<bos><system>s</s><user>u</s><assistant>"
+    assert out["chosen"] == "good reply here</s>" and out["rejected"] == "bad</s>"
+    assert out["pair_type"] == "drop" and isinstance(r["prompt"], list)
+
+
+def test_chat_template_pairs_rejects_template_that_does_not_extend_prompt():
+    class Bad(FakeTok):
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=False):
+            return ("X" if not add_generation_prompt else "") + super().apply_chat_template(messages, tokenize, add_generation_prompt)
+
+    with pytest.raises(ValueError, match="does not start with"):
+        chat_template_pairs([row()], Bad())
+
+
+def test_train_aligntune_chat_template_is_dpo_only(tmp_path):
+    data = tmp_path / "sft.jsonl"
+    data.write_text(json.dumps(row()) + "\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="DPO only"):
+        _train_aligntune().main(["--method", "sft", "--data", str(data), "--output", str(tmp_path / "o"), "--chat-template", "--dry-run"])

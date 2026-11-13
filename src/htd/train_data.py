@@ -48,6 +48,25 @@ def dpo_columns(rows: list[Row]) -> list[Row]:
     return out
 
 
+def chat_template_pairs(rows: list[Row], tokenizer: Any) -> list[Row]:
+    """Render DPO rows as chat-template strings, the way TRL does for conversational rows.
+
+    AlignTune flattens message lists to role-less text before DPO (docs/UPSTREAM.md, item 7);
+    plain strings pass through it unchanged, so the trainer sees the same format as evaluation.
+    """
+    out = []
+    for i, r in enumerate(rows):
+        prompt = tokenizer.apply_chat_template(r["prompt"], tokenize=False, add_generation_prompt=True)
+        new = {**r, "prompt": prompt}
+        for k in ("chosen", "rejected"):
+            full = tokenizer.apply_chat_template(r["prompt"] + r[k], tokenize=False)
+            if not full.startswith(prompt):
+                raise ValueError(f"row {i}: templated prompt+{k} does not start with the templated prompt")
+            new[k] = full[len(prompt):]
+        out.append(new)
+    return out
+
+
 def sft_columns(rows: list[Row]) -> list[Row]:
     """TRL SFT rows: one `messages` list only."""
     out = []

@@ -1,0 +1,18 @@
+{
+  "id": "rockerleo/htd-dpo-chat",
+  "title": "htd dpo chat",
+  "code_file": "dpo_chat.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "rockerleo/htd-code",
+    "rockerleo/htd-pairs-v2",
+    "rockerleo/htd-secrets"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

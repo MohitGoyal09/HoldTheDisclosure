@@ -2,6 +2,7 @@
 
 python scripts/train_aligntune.py --data data/generated/pairs/dpo_train.jsonl --output outputs/aligntune_dpo --max-steps 5
 python scripts/train_aligntune.py --data ... --output ... --epochs 1
+python scripts/train_aligntune.py --data ... --output ... --chat-template   # DPO in the evaluation format
 
 AlignTune routes to the TRL backend and handles the config. This file exists so the
 pipeline uses CuratorKIT (data), AlignTune (post-training) and AuditKIT (evaluation),
@@ -17,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from htd.train_data import filter_pair_types, load_jsonl  # noqa: E402
+from htd.train_data import chat_template_pairs, filter_pair_types, load_jsonl  # noqa: E402
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -38,6 +39,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--max-length", type=int, default=1280)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--pair-types", default=None, help="comma list of DPO pair types to keep, e.g. drop,warn")
+    ap.add_argument("--chat-template", action="store_true",
+                    help="DPO only: pass chat-template strings so AlignTune does not flatten the messages (UPSTREAM item 7)")
     ap.add_argument("--dry-run", action="store_true")
     return ap.parse_args(argv)
 
@@ -60,15 +63,26 @@ def main(argv: list[str] | None = None) -> None:
         "max_length": a.max_length,
         "seed": a.seed,
     }
+    if a.chat_template and a.method != "dpo":
+        raise SystemExit("--chat-template applies to DPO only")
+    out = Path(a.output)
     if a.pair_types:
         types = [t.strip() for t in a.pair_types.split(",") if t.strip()]
         rows = filter_pair_types(load_jsonl(a.data), types)
-        out = Path(a.output)
         filtered = out.parent / f"{out.name}_train.jsonl"
         filtered.parent.mkdir(parents=True, exist_ok=True)
         filtered.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
         a.data = str(filtered)
         plan.update(data=a.data, pair_types=types, rows=len(rows))
+    if a.chat_template:
+        from transformers import AutoTokenizer
+
+        rows = chat_template_pairs(load_jsonl(a.data), AutoTokenizer.from_pretrained(a.base))
+        templated = out.parent / f"{out.name}_train_chat.jsonl"
+        templated.parent.mkdir(parents=True, exist_ok=True)
+        templated.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+        a.data = str(templated)
+        plan.update(data=a.data, chat_template=True, rows=len(rows))
     print(json.dumps(plan, indent=2))
     if a.dry_run:
         return

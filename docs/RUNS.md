@@ -145,4 +145,5 @@ python scripts/render_results.py
 | `R2-data` | local, GLM-4.7-Flash | `scripts/vary_chosen.py` on gen_train_v2 and gen_control_train_v2; pairs cut with `--always-recover-turn 3` | Complete: 444 flagged, 425 rewritten, 403 below 0.7 | `rockerleo/htd-pairs-v3-varied` (private) |
 | `R2-train` | `rockerleo/htd-sft-varied` | SFT as `sft_lr1e4_s1` on pairs v3 varied | Queued: owner GPU quota 30/30 h; retried by `r2_pipeline.sh` | pending |
 | `R2-eval` | `rockerleo/htd-eval-varied` | `sft_varied_s1` on test2, test, held-out, control test | Queued after R2-train | pending |
+| `D-chat` | `rockerleo/htd-dpo-chat` | DPO as `align-drop-lr5e5` (drop+warn, lr 5e-5, seed 0) with one changed axis: `--chat-template` (rows passed as chat-template strings, so AlignTune does not flatten them; UPSTREAM item 7). Trains, then evaluates on test2 and test in the same kernel. Not pre-registered | Queued after R2-train is pushed (`outputs/dpo_chat_pipeline.sh`) | pending |
 | `H1` | artifact page | Owner labels, 50 blind test2 passes | Open | `outputs/labels/copy/` |

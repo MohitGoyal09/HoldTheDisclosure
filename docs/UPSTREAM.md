@@ -62,3 +62,6 @@ Found while building this project. Each one is a candidate issue or PR for the L
   message lists directly).
 - **Fix suggested:** keep source rows for preference task types as is done for SFT conversations, or
   apply the tokenizer's chat template to `prompt` before flattening.
+- **Workaround here:** `scripts/train_aligntune.py --chat-template` passes rows already rendered with
+  the tokenizer's chat template (`htd.train_data.chat_template_pairs`); plain strings pass AlignTune
+  unchanged. Checked locally on all 858 drop+warn rows (2026-11-14).

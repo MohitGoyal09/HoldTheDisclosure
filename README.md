@@ -89,7 +89,8 @@ In-script DR@5 (reply also in the customer's script) is in brackets where it dif
 
 Other findings:
 
-- DPO works only at a learning rate high enough for the LoRA policy to move; the pair mix did not
+- DPO, as run through AlignTune, works only at a learning rate high enough for the LoRA policy to move
+  (a format mismatch in those runs may also play a part; see below); the pair mix did not
   decide the outcome.
 - SFT answers control questions less often than base (not significant after correcting for all
   helpfulness tests); no trained system adds warnings to products that need none. DPO all pairs

@@ -133,7 +133,7 @@ work that measures disclosure retention under multi-turn pushback in Hindi or Hi
 **Training and evaluation methods.** We use LoRA [15] for SFT and for DPO [16]. Schulman and
 Thinking Machines Lab report that the best LoRA learning rate is consistently about 10 times the
 full fine-tuning rate [17]; our DPO result fits this, since 5e-6 left the LoRA policy near the
-reference and 5e-5 trained it. Strong LLM judges agree well with human preferences in open chat
+reference and 5e-5 trained it (all our DPO runs also share a format mismatch; see the DPO results). Strong LLM judges agree well with human preferences in open chat
 [18], and a panel of smaller models from different families can outperform a single large judge
 [19]; we use such a panel as a reference and report where one judge's rubric misled it. Our
 choice of paired tests follows Dror et al. [20].
@@ -375,7 +375,7 @@ against 0%); see "Retention by repetition".
 
 ![Fig. 2. Change in turn-5 disclosure retention against the system's own base model, with 95% percentile bootstrap intervals over 60 paired dialogues. Labels give base and system DR@5. Tiny Aya systems are compared with Tiny Aya base, Llama SFT (hollow marker, below the dotted line) with Llama base.](figures/fig2_effects_forest.png)
 
-### DPO: it works only at a learning rate high enough to train
+### DPO, as run: it works only at a learning rate high enough to train
 
 All DPO runs share a format problem found after the study: AlignTune flattened each chat
 prompt to plain text without role markers, while evaluation used the chat template
@@ -399,8 +399,9 @@ such as "No need to worry, it's completely fine". The grid does not support that
 at a working learning rate the all-pairs run retains as much on test (41.7% each) and scores
 higher on held-out (63.3% against 46.7%; the two mixes were not compared with a formal test, and
 their intervals overlap; Fig. 4 shows the pair types). The two 5e-5 runs were added after the pre-set Holm family was fixed, so their
-p-values are reported raw. The first DPO failure was an undertrained policy at a learning rate
-too low for LoRA, not a data problem. Two more seeds per mix at 5e-5 (follow-up F3) confirm both
+p-values are reported raw. The most direct explanation of the first DPO failure is a learning rate
+too low for LoRA: the policy did not move, and the pair mix did not decide the outcome. The format
+mismatch above may also have contributed, and this grid cannot separate the two. Two more seeds per mix at 5e-5 (follow-up F3) confirm both
 points: every run beats base on test, and the mixes are not distinguishable at three runs.
 
 ![Fig. 3. DPO 2x2: pair mix by learning rate. Pooled DR@5 over 60 dialogues with Wilson 95% intervals; dashed line is base.](figures/fig3_dpo_grid.png)
@@ -499,7 +500,7 @@ The four predictions in `docs/PREREGISTRATION.md`, scored as written:
 |---|---|---|
 | P1: base DR@5 below 70% in at least one script | supported | test DR@5 0% (en), 15% (hi), 25% (hinglish) |
 | P2: base DR@5 lower in Hinglish than in English | not supported | Hinglish 25%, English 0% on test; the script difference is at turn 1 (50% against 100%) |
-| P3: DPO beats base, the strict and third-person prompts and SFT, on held-out | not supported | DPO beats base on held-out (46.7% and 63.3% against 28.3%) but not SFT (70.0 to 76.7%); no strict or third-person run exists on held-out |
+| P3: DPO beats base, the strict and third-person prompts and SFT, on held-out | not supported | DPO beats base on held-out (46.7% and 63.3% against 28.3%) but not SFT (70.0 to 76.7%); no strict or third-person run exists on held-out; every DPO run had the AlignTune format mismatch, so this is not a like-for-like test of DPO against SFT |
 | P4: DPO adds no over-correction or warnings (5 points), helpfulness within 5 points | partly supported | 0 unneeded warnings; no over-correction under judge v2 but 37 to 55% for SFT under judge v1; DPO drop+warn helpfulness 55% against 63% on disclosure products |
 
 Two of four predictions failed. The DR@5 gain from fine-tuning is not P3; it was C1 and C2 in the
