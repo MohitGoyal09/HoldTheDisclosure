@@ -162,3 +162,58 @@ Fresh DR@5 is post hoc (above). This study tests it with fixed analyses, before 
 - H1b: the same for Q2 (this tests whether copying is still an acceptable way to hold).
 - H1c: agreement and Cohen's kappa between the owner's Q1 and the panel's helpfulness vote on the same replies.
 - Limitation stated in advance: copied items come mostly from trained systems and fresh items mostly from base and Qwen, so system style is confounded with copying.
+
+## Final study (registered 2026-11-14, before any of its outputs exist)
+
+At registration time (02:15 IST): the corrected DPO adapter and the rule-distilled adapter are not trained (both
+kernels wait for Kaggle GPU quota); the reference disclosure panel has not been run on any test2 reply; the
+helpfulness panel labels of the rule baseline exist and were read (`docs/RESULTS_ROBUSTNESS.md`, section 11), so
+the rule baseline's checker-based HD@5 is post hoc and is not re-tested here. All tests are scenario-level
+sign-flip tests with bootstrap intervals as in the report (40 test2 scenarios), alpha 0.05. Panel labels are model
+labels and are reported as such.
+
+### D1. Corrected DPO format (`aligntune_dpo_drop_lr5e5_chat`)
+
+- Training: as `align-drop-lr5e5` (drop+warn pairs, lr 5e-5, beta 0.1, rank 16, 1 epoch, seed 0), with the rows
+  passed as chat-template strings (`--chat-template`) so AlignTune does not flatten them (`docs/UPSTREAM.md`, item 7).
+- Primary (D1): test2 HD@5 (checker pass and helpfulness-panel majority helpful, unchanged prompt), corrected
+  against the original `at_drop_lr5e5` run, two-sided (no direction predicted).
+- Secondary: DR@5, fresh DR@5 and the copied-pass rate on test2; DR@5 on test; DR@5 and HD@5 against base.
+- Reading: a difference means the format bug changed the DPO result; no difference means the reported DPO
+  numbers stand for the corrected format too. One seed.
+
+### D2. Rule distillation (`sft_rule_s1`)
+
+- Data: base Tiny Aya Fire replays the training dialogues (`gen_train_v2`, `gen_control_train_v2`) with the rule
+  applied turn by turn (`scripts/rule_targets.py`: every disclosure statement the checker finds missing is
+  appended; the edited reply stays in the history). Records whose edited reply still fails the checker or the
+  script check are dropped. Pairs cut with the pairs v2 command. Training identical to `sft_lr1e4_s1` (seed 1).
+- Primary (D2): test2 HD@5, `sft_rule_s1` against `sft_s1`, one-sided (rule-distilled higher).
+- Secondary: HD@5 against the rule baseline (two-sided, with interval: does training reach the rule?); fresh DR@5
+  and copied-pass rate against `sft_s1`; DR@5; control-test over-warning and helpfulness; panel DR@5 (J1).
+- D1 and D2 primaries are Holm-corrected as one family of two.
+- Reading: if D2 holds, the gain the rule shows can be moved into the weights, so no checker is needed at serving
+  time. Caveat stated in advance: the targets contain the product sheet's statement text, which the checker
+  matches, so checker-based DR@5 favours this system by construction; J1 is the check.
+
+### J1. Meaning-based disclosure on test2 (reference panel)
+
+- Measure: the existing reference panel (`scripts/judge_run.py --rubric panel`, unchanged prompt; Llama-3.3-70B,
+  DeepSeek-V3, gpt-oss-120b; majority by `scripts/panel_vote.py`) on the turn-5 replies of test2 for: base, base
+  strict, SFT v6, SFT seed 1, SFT v5, DPO drop+warn 5e-5, DPO all pairs 5e-5, Qwen2.5-72B strict, the rule baseline,
+  and, when they exist, `sft_rule_s1`, the corrected DPO adapter and `sft_varied_s1`.
+- Panel DR@5: panel majority PASS. Panel HD@5: panel PASS and helpfulness-panel helpful. Neither uses the
+  checker's keyword lists or the product sheet statements as a pattern.
+- J1a (primary): panel HD@5, rule baseline against SFT v6, two-sided.
+- J1b: checker against panel agreement per system on test2 (descriptive); panel DR@5 of the rule baseline
+  (descriptive; the checker gives 100% by construction).
+- J1c: Fleiss' kappa of the three helpfulness-panel models on all test2 rows, and of the three disclosure-panel
+  models (descriptive).
+
+CORRECTION 2026-11-14: the final-study header says registration was at 02:15 IST; the commit that registered it
+(`d6d894b`) is timestamped 01:50 IST. No output of D1, D2 or J1 existed at either time.
+- 2026-11-14, before any second-labeller answer exists (owner: 1 of 50 labelled): a second human labeller may
+  label the same 50 items, blind and alone, from `outputs/labels/copy/LABEL_SHEET.md` (same items, order, wording
+  and hints as the label page; `scripts/copy_sheet.py md` / `read-md`). H1a to H1c stay on the owner's labels.
+  Added, descriptive: agreement and Cohen's kappa between the two humans on Q1 and on Q2, and H1a/H1b repeated
+  on the second labeller's answers.

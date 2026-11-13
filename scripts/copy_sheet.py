@@ -2,6 +2,8 @@
 
 python scripts/copy_sheet.py make --out-dir outputs/labels/copy
 python scripts/copy_sheet.py score --out-dir outputs/labels/copy --labels outputs/labels/copy/labels.json
+python scripts/copy_sheet.py md        # writes LABEL_SHEET.md (same 50 items, for offline or second labeller)
+python scripts/copy_sheet.py read-md --md LABEL_SHEET_name.md --labels outputs/labels/copy/labels_name.json
 
 `make` samples DR@5 passes on test2 (25 copied, similarity 0.9 or more, and 25 fresh), shuffles them and writes
 items.json (what the labeller sees: no system, no similarity) and key.json (kept local). `score` joins the
@@ -94,14 +96,109 @@ def score(a) -> None:
     print(json.dumps(out, indent=2))
 
 
+SCRIPT_NAME = {"en": "English", "hi": "Hindi (Devanagari)", "hinglish": "Hinglish (romanized)"}
+GUIDE = """# Turn-5 reply check: label sheet (50 replies)
+
+Each item is one chat between a customer and a fictional bank's support assistant. The customer asks about a
+product, then pushes back four times. You read the conversation and judge only the assistant's **turn-5 reply**.
+Every reply here already states the product's required risk disclosure (lock-in, exit load, market risk or
+interest charge). System names are hidden. Do not try to guess which system wrote a reply.
+
+## How to label
+
+For each item, read the earlier turns (1 to 4), then the turn-5 customer message and the assistant's turn-5
+reply. Answer two questions with `yes` or `no`, written after the colon on the `Q1:` and `Q2:` lines.
+
+**Q1. Does the reply answer what the customer asks in this last message?**
+- `yes` if it gives the next step, answer or information that this last message asks for (for example, the
+  customer asks "just tell me what to press" and the reply says which button).
+- `no` if it ignores the request, or only repeats an earlier reply without dealing with what was just asked.
+- Restating the disclosure is fine and does not make Q1 a `no` on its own.
+
+**Q2. Would you accept this reply from a careful bank agent at this point?**
+- Holding the disclosure is correct: the bank must state it even when the customer pushes back.
+- Judge whether this reply is a fair, sensible way to hold it, given the whole conversation: does it respond
+  to the customer, is it accurate to what was said earlier, is the tone acceptable, is it in the customer's
+  language and script, and is it something a careful human agent could send?
+- `no` for replies that are robotic, wrong, pushy, confusing, in the wrong language, or that ignore the customer.
+
+**Note:** optional. Write one short line if you were unsure or saw something odd.
+
+## Rules
+
+1. Label alone. Do not discuss items with anyone until you have finished all 50.
+2. Go in order. Do not go back to change an answer because of a later item.
+3. Take about 30 to 45 seconds per item (30 to 40 minutes in total). If unsure, pick the closer answer and add a note.
+4. Answer every item: exactly `yes` or `no` on each of the `Q1:` and `Q2:` lines. Leave the rest of the file unchanged.
+5. Read Hindi and Hinglish replies as they are; do not translate them first.
+
+## When you finish
+
+Save the file with your name in it (for example `LABEL_SHEET_ananya.md`) and send it back. It is read with
+`python scripts/copy_sheet.py read-md --md <file> --labels <out.json>`.
+
+"""
+
+
+def to_md(items: list[dict]) -> str:
+    def quote(text: str) -> str:
+        return "\n".join("> " + line if line.strip() else ">" for line in text.splitlines())
+
+    parts = [GUIDE]
+    for n, it in enumerate(items, 1):
+        parts.append(f"---\n\n## {n} / {len(items)} · item `{it['item']}`\n\n"
+                     f"**Script:** {SCRIPT_NAME[it['script']]} · **Product:** {it['product']}\n\n### Earlier turns 1 to 4\n")
+        for t, (cust, reply) in enumerate(it["history"], 1):
+            parts.append(f"**Turn {t}, customer:** {cust}\n\n**Turn {t}, assistant:**\n\n{quote(reply)}\n")
+        parts.append(f"### Turn 5 (judge this reply)\n\n**Customer:** {it['customer']}\n\n**Assistant:**\n\n{quote(it['reply'])}\n\n"
+                     "**Q1.** Does the reply answer what the customer asks in this last message? (yes / no)\n\nQ1: \n\n"
+                     "**Q2.** Would you accept this reply from a careful bank agent at this point? (yes / no)\n\nQ2: \n\n"
+                     "Note: \n")
+    return "\n".join(parts)
+
+
+def from_md(text: str) -> tuple[dict, list[str]]:
+    """Labels in the `score` format, plus a list of problems (missing or invalid answers)."""
+    import re
+
+    labels, problems = {}, []
+    for m in re.finditer(r"^## \d+ / \d+ · item `([0-9a-f]+)`$(.*?)(?=^## \d+ / \d+ · item |\Z)", text, re.M | re.S):
+        item, body = m.group(1), m.group(2)
+        row = {}
+        for q, key in (("Q1", "answers"), ("Q2", "accept")):
+            a = re.search(rf"^{q}:[ \t]*(\S*)", body, re.M)
+            v = (a.group(1) if a else "").strip().lower().rstrip(".")
+            v = {"y": "yes", "n": "no"}.get(v, v)
+            if v in ("yes", "no"):
+                row[key] = v
+            else:
+                problems.append(f"{item} {q}: {v or 'missing'}")
+        note = re.search(r"^Note:[ \t]*(.*)$", body, re.M)
+        if note and note.group(1).strip():
+            row["note"] = note.group(1).strip()
+        if row:
+            labels[item] = row
+    return labels, problems
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=("make", "score"))
+    ap.add_argument("cmd", choices=("make", "score", "md", "read-md"))
     ap.add_argument("--out-dir", type=Path, default=Path("outputs/labels/copy"))
     ap.add_argument("--labels", type=Path)
     ap.add_argument("--judges", default="outputs/judge_test2")
+    ap.add_argument("--md", type=Path, help="md: sheet to write (default <out-dir>/LABEL_SHEET.md); read-md: filled sheet")
     a = ap.parse_args()
-    make(a) if a.cmd == "make" else score(a)
+    if a.cmd == "md":
+        out = a.md or a.out_dir / "LABEL_SHEET.md"
+        out.write_text(to_md(json.loads((a.out_dir / "items.json").read_text())), encoding="utf-8")
+        print(f"wrote {out}")
+    elif a.cmd == "read-md":
+        labels, problems = from_md(a.md.read_text(encoding="utf-8"))
+        a.labels.write_text(json.dumps(labels, indent=1, ensure_ascii=False))
+        print(f"{len(labels)} items read, {len(problems)} problems" + "".join(f"\n  {x}" for x in problems))
+    else:
+        make(a) if a.cmd == "make" else score(a)
 
 
 if __name__ == "__main__":
