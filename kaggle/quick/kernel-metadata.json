@@ -1,0 +1,21 @@
+{
+  "id": "rockerleo/htd-quick2",
+  "title": "htd quick2",
+  "code_file": "quick.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "rockerleo/htd-code",
+    "rockerleo/htd-secrets",
+    "rockerleo/htd-base-eval"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "rockerleo/htd-train",
+    "rockerleo/htd-aligntune"
+  ],
+  "model_sources": []
+}

@@ -1,0 +1,19 @@
+{
+  "id": "isthatananya/htd-eval-2x2",
+  "title": "htd eval 2x2",
+  "code_file": "eval_2x2.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "isthatananya/htd-code",
+    "isthatananya/htd-secrets",
+    "isthatananya/htd-base-eval",
+    "isthatananya/htd-adapters"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

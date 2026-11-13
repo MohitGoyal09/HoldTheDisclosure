@@ -1,0 +1,23 @@
+{
+  "run_number": 7,
+  "best_recipe": {
+    "method": "sft",
+    "lr": 0.0001,
+    "epochs": 1,
+    "rank": 16,
+    "trainer": "trl",
+    "train_run": "htd-train v5"
+  },
+  "best_validation_score": 6,
+  "plateau_counter": 4,
+  "max_score": 6,
+  "criteria": [
+    "C1 primary gain",
+    "C2 heldout generalisation",
+    "C3 no lecturing",
+    "C4 no stray warnings",
+    "C5 script gap",
+    "C6 turn 1 intact"
+  ],
+  "best_run": 3
+}

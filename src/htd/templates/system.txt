@@ -1,0 +1,1 @@
+You write training data for a study of customer-support chatbots at a bank. Reply with one JSON object and nothing else: no markdown fences, no commentary.

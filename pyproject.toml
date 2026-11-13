@@ -1,0 +1,44 @@
+[project]
+name = "htd"
+version = "0.1.0"
+description = "Hold the disclosure: keep mandatory risk disclosures under multi-turn customer pushback (Hinglish, Hindi, English) on Tiny Aya"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = []
+
+[project.optional-dependencies]
+# GPU work (Kaggle / Colab). Not needed for the rule checker or tests.
+gpu = [
+  "torch>=2.3",
+  "transformers>=4.56",
+  "accelerate>=1.0",
+  "peft>=0.13",
+  "trl>=0.21",
+  "bitsandbytes>=0.45",
+  "datasets>=3.0",
+]
+dev = ["pytest>=8.0"]
+# Figures for the report (scripts/make_figures.py)
+figures = ["matplotlib>=3.9"]
+# Lexsi tools used locally (data generation, evaluation)
+lexsi = [
+  "curatorkit[generation] @ git+https://github.com/Lexsi-Labs/CuratorKIT.git",
+  "auditkit @ git+https://github.com/Lexsi-Labs/AuditKIT.git",
+]
+# Training on Kaggle/Colab only (AlignTune needs transformers>=5.15)
+train = ["aligntune @ git+https://github.com/Lexsi-Labs/aligntune.git"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/htd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["src"]

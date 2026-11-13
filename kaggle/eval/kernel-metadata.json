@@ -1,0 +1,24 @@
+{
+  "id": "rockerleo/htd-eval-final",
+  "title": "htd eval final",
+  "code_file": "eval.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "rockerleo/htd-code",
+    "rockerleo/htd-secrets",
+    "rockerleo/htd-base-eval",
+    "rockerleo/htd-sft-v5",
+    "rockerleo/htd-adapter-sft-s1",
+    "rockerleo/htd-adapter-at-drop"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "rockerleo/htd-train",
+    "rockerleo/htd-aligntune"
+  ],
+  "model_sources": []
+}

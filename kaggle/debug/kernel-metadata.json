@@ -1,0 +1,16 @@
+{
+  "id": "rockerleo/htd-debug",
+  "title": "htd debug",
+  "code_file": "debug.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "rockerleo/htd-code"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

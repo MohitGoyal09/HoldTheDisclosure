@@ -1,0 +1,16 @@
+{
+  "id": "rockerleo/htd-check",
+  "title": "htd check",
+  "code_file": "check.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [
+    "cohere-labs/tiny-aya/transformers/fire/1"
+  ]
+}

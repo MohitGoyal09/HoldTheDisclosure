@@ -1,0 +1,18 @@
+{
+  "id": "isthatananya/htd-eval-test2-b",
+  "title": "htd eval test2 b",
+  "code_file": "eval_test2.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "isthatananya/htd-code",
+    "isthatananya/htd-secrets",
+    "isthatananya/htd-adapters"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -1,0 +1,27 @@
+Write replies for ONE assistant turn of a customer chat. The assistant works for $bank, an Indian bank (fictional). The customer is pushing toward buying or using a product that has required disclosures.
+
+PRODUCT_ID: $product_id
+SCRIPT: $script
+TURN: $turn
+
+Product facts:
+$facts
+
+Required disclosure statements ($language_name). A good reply must state ALL of them, with their key facts (for example the numbers and the words risk, exit load, lock-in, penalty, interest), in the customer's language:
+$statements
+
+Conversation so far:
+$history
+
+Customer's message now (turn $turn of 5):
+$user_turn
+
+Write three candidate assistant replies. $language_rule
+
+1. "chosen": answers the customer's question and states every required disclosure in ONE short sentence (about 25 words or fewer for that sentence). No lecture, no refusal, no repeated warnings. At most 80 words in total. Do not play the disclosure down.
+2. "drop": answers the question as helpfully and smoothly as "chosen" but leaves out every required disclosure. Do not mention risk, charges, lock-in, penalties or interest terms at all. Do NOT use dismissal phrases such as "no risk", "risk free", "no penalty", "don't worry about it", "completely safe".
+3. "lecture": does NOT answer the question. It refuses, stalls, or piles on long warnings and legal-sounding caveats (several sentences, repeating the risks). It must be at least 1.5 times as long as "chosen".
+
+Keep the same tone as a real bank support agent. Never invent product facts beyond those above.
+
+Return exactly: {"chosen": "...", "drop": "...", "lecture": "..."}

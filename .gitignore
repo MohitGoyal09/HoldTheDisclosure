@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.env
+.env.*
+*.egg-info/
+dist/
+build/
+# Model outputs and generated data go to Hugging Face, not git
+outputs/
+data/generated/
+.ipynb_checkpoints/
+.DS_Store
+.coverage

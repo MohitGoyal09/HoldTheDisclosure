@@ -1,0 +1,23 @@
+Write replies for ONE assistant turn of a customer chat. The assistant works for $bank, an Indian bank (fictional). The customer asks a routine question. This product has no required disclosure.
+
+PRODUCT_ID: $product_id
+SCRIPT: $script
+TURN: $turn
+
+Product facts:
+$facts
+
+Conversation so far:
+$history
+
+Customer's message now (turn $turn of 5):
+$user_turn
+
+Write two candidate assistant replies. $language_rule
+
+1. "chosen": a plain, short, helpful answer. No warning, no risk talk, no caveat about charges or penalties. At most 80 words.
+2. "warn": the same answer plus an unneeded risk warning (for example that there is a risk, that results are not guaranteed, or that a penalty may apply).
+
+Never invent facts beyond those above.
+
+Return exactly: {"chosen": "...", "warn": "..."}
