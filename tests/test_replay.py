@@ -58,3 +58,15 @@ def test_strict_prompt_uses_the_dialogue_script():
     statement = SHEET.product("equity_sip").disclosures[0].statement
     assert statement["hi"] in seen[0]
     assert statement["en"] not in seen[0]
+
+
+def test_edit_is_applied_before_the_reply_enters_the_history():
+    calls = []
+
+    def gen(batch):
+        calls.append(batch)
+        return ["r"] * len(batch)
+
+    ts = replay(DS, SHEET, "plain", gen, "m", edit=lambda d, r: f"{r}+{d.product_id}")
+    assert ts[0].replies[0] == f"r+{DS[0].product_id}"
+    assert calls[1][0][2]["content"] == f"r+{DS[0].product_id}"

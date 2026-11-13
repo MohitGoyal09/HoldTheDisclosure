@@ -63,6 +63,12 @@ def stub_run(cmd, *a, **kw):
         return subprocess.CompletedProcess(cmd, 0, stdout="stub\n", stderr="")
     if "run_pilot.py" in joined:
         return fake_generate(cmd)
+    if "rule_targets.py" in joined:
+        r = real_run([("fake" if c == "hf" else c) for c in cmd], check=True)
+        out = Path(cmd[cmd.index("--out") + 1])  # the fake backend answers in English; mark all ok so the plumbing runs
+        rows = [dict(json.loads(x), status="ok") for x in out.read_text().splitlines() if x.strip()]
+        out.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rows))
+        return r
     if "judge_run.py" in joined:
         return fake_judge(cmd)
     if "train_aligntune.py" in joined or "scripts/train.py" in joined:

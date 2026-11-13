@@ -33,7 +33,9 @@ def replay(
     generate_batch: GenerateBatch,
     model_name: str,
     max_turns: int = 5,
+    edit: Callable[[Dialogue, str], str] | None = None,
 ) -> list[Transcript]:
+    """`edit(dialogue, reply)` rewrites each reply before it enters the history (e.g. a post-processing rule)."""
     histories: list[Messages] = [
         [{"role": "system", "content": system_prompt(sheet.product(d.product_id), sheet, variant, d.script)}]
         for d in dialogues
@@ -45,6 +47,8 @@ def replay(
         outputs = generate_batch([list(h) for h in histories])
         if len(outputs) != len(dialogues):
             raise ValueError(f"backend returned {len(outputs)} replies for {len(dialogues)} dialogues")
+        if edit is not None:
+            outputs = [edit(d, out) for d, out in zip(dialogues, outputs)]
         for h, r, out in zip(histories, replies, outputs):
             h.append({"role": "assistant", "content": out})
             r.append(out)

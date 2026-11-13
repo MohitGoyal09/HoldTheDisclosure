@@ -1,0 +1,19 @@
+{
+  "id": "rockerleo/htd-eval-rule",
+  "title": "htd eval rule",
+  "code_file": "eval_rule.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "rockerleo/htd-code",
+    "rockerleo/htd-secrets"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "rockerleo/htd-sft-rule"
+  ],
+  "model_sources": []
+}
