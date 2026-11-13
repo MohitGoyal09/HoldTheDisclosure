@@ -22,31 +22,31 @@ Llama-3.2-3B keeps 0% and Qwen2.5-72B 3.3%. Instruction helps unevenly: the stri
 Qwen2.5-72B to 41.7% on test but not on held-out products (28.3%), and lifts Tiny Aya on new
 pushback lines (40.0%) but not on the first test split (11.7%).
 
-LoRA supervised fine-tuning and DPO (through AlignTune) on gated synthetic replies raise DR@5
-sharply. On 120 new, native-reviewed pushback dialogues that no system was tuned on, all five trained systems beat base (32.5 to 52.5% against 16.7%; all Holm p < 0.01,
+LoRA supervised fine-tuning and DPO (through AlignTune) on gated synthetic replies raise DR@5. On 120 new, native-reviewed pushback dialogues that no system was tuned on, all five trained systems beat base (32.5 to 52.5% against 16.7%; all Holm p < 0.01,
 pre-registered). The gain holds over training runs, a second model family, held-out products, a
 shuffled turn order and the untuned checker.
 
 A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
-reply of the same model (on the new lines, 29% of SFT dialogues pass with a verbatim copy;
+reply of the same model (29% of SFT dialogues on the new lines pass with a verbatim copy;
 instructed Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
 costs. A three-family LLM panel rates copied passes helpful far less often than
 fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
 that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
 4.2%, p = 0.0002) and matches instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
-DR@5 gain is repetition that does not answer the customer; a filter that discards every copy
-(fresh DR@5) erases the whole gain and is too strict. SFT also copies on control products (51 of
+DR@5 gain is repetition that does not answer the customer. A post hoc rule that appends the
+missing disclosure sentence to every base reply does better still (HD@5 55.0%, DR@5 100%). SFT also copies on control products (51 of
 60 dialogues, base 13); its training replies were already near-repeats (median similarity 0.86).
 
 Other costs: no trained system adds a warning to products that need none; SFT answers control
-questions less often than base (40 to 45% against 65%, not significant after correction); one
+questions less often than base (not significant after correction); one
 DPO mix often answers Hinglish customers in Devanagari.
 
-The lessons are for evaluation and data: a per-turn compliance metric must also check that the
-reply answers the customer, and multi-turn training replies must vary across turns. Limitations:
+Lessons: a per-turn compliance metric must also check that the
+reply answers the customer and be compared with a simple rule, and multi-turn training replies
+must vary across turns. Limitations:
 one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
-helpfulness from model labels, and a repetition finding found post hoc, then tested
-with a pre-registered analysis. Code, data, adapters and logs are released.
+helpfulness from model labels, and a post hoc repetition finding, then tested as
+pre-registered. Code, data and adapters are released.
 
 ## The problem
 
@@ -689,6 +689,31 @@ helpful disclosures more often than base, and also to repeat itself. The rule ch
 reply by reply against the blind labels, cannot tell these apart. A low HD@5 for base (4.2%)
 shows that the few disclosures base keeps are rarely helpful ones.
 
+### A rule baseline beats every trained system on HD@5 (post hoc)
+
+Added after the study and not pre-registered (`docs/RESULTS_ROBUSTNESS.md`, section 11). For each
+base reply on test2 we append the product sheet's statement for every disclosure the rule checker
+finds missing, in the customer's script (`scripts/rule_baseline.py`). No model is trained.
+
+| system (test2, 120 dialogues) | DR@5 | fresh DR@5 | helpful at turn 5 | HD@5 | HD@5 against the rule [95% CI] |
+|---|---|---|---|---|---|
+| base + appended disclosure (rule) | 100.0% | 71.7% | 55.0% | 55.0% | |
+| SFT | 52.5% | 10.0% | 55.8% | 27.5% | -27.5 [-40.8, -14.2], p = 0.00055 |
+| Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 93.3% | 30.8% | -24.2 [-35.8, -12.5], p = 0.00065 |
+| base | 16.7% | 10.0% | 51.7% | 4.2% | -50.8 [-60.8, -40.8], p = 5e-05 |
+
+Base Tiny Aya's turn-5 reply is helpful in 51.7% of dialogues (panel majority), but it drops the
+disclosure. Appending the sentence keeps that answer and adds the disclosure, so HD@5 rises
+to 55.0%. SFT is as often helpful (55.8%) and keeps the disclosure more often, but the two rarely coincide,
+in part because copied passes are rated helpful less often (R1). Instructed Qwen2.5-72B is helpful in 93.3%
+but keeps the disclosure in only 35.0%. On this metric a few lines of post-processing beat both training and a 20 times
+larger instructed model. Caveats: the later base turns were generated from the unedited history,
+so this approximates a deployed filter; the rule needs a per-product statement list and the checker
+at serving time; the appended sentence can sit next to text that downplays the risk (the checker
+fails a reply only for explicit dismissals); helpfulness is from the LLM panel, not humans. We read
+this as a further sign that per-turn compliance is cheap to satisfy, and that a trained system
+should be compared with such a rule before its gain is credited to training.
+
 ### Retrain on varied replies (R2, pre-registered)
 
 To test the training-data cause, we rewrote every chosen training reply at turns 2 to 5 whose
@@ -734,6 +759,8 @@ and DPO intervals are wide.
 
 ## Limitations
 
+- The rule baseline (append the missing disclosure sentence) beats every trained system on HD@5. It
+  was added post hoc, edits the replies after generation, and is scored by model labels only.
 - Every DPO adapter was trained on prompts that AlignTune had flattened to plain text without
   role markers or the chat template, and was evaluated with the chat template (found after the
   runs; `docs/UPSTREAM.md`, item 7). The DPO results are therefore for a train and serve format

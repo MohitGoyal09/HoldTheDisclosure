@@ -15,12 +15,14 @@ Lexsi AI Safety Hackathon 2026, Track 1 (fine-tuning). English, Devanagari Hindi
 
 ## For judges: the 60-second view
 
-1. Read the four TL;DR bullets below.
+1. Read the five TL;DR bullets below.
 2. Look at the figure under them: the disclosure score split into fresh and copied replies, with HD@5.
 3. Open the [transcript replay](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay), set the right
    side to "SFT (main run)" and "Show: right system copies at turn 5" to see the repetition yourself (no GPU).
 4. Check that the tests were fixed in advance: [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), with dated
    amendments.
+5. Re-check the headline numbers yourself in one command (no GPU, no API key): `scripts/verify.sh`. It runs the
+   tests, downloads the published transcripts and panel labels, and recomputes DR@5 and HD@5 for six systems.
 
 **Results at a glance** (120 new pushback dialogues, turn 5):
 
@@ -29,10 +31,13 @@ Lexsi AI Safety Hackathon 2026, Track 1 (fine-tuning). English, Devanagari Hindi
 | Tiny Aya Fire 3.35B, base | 16.7% | 4.2% | about the same as the adapter (same model) |
 | Tiny Aya Fire + SFT adapter (ours) | 52.5% | 27.5% | about $1.07 (one T4 GPU) |
 | Qwen2.5-72B-Instruct, strict prompt | 35.0% | 30.8% | about $1.39 (API, lowest listed price) |
+| Rule: base replies + the missing disclosure sentence appended (post hoc) | 100.0% | 55.0% | about the same as base, plus a string check |
 
 Costs are list prices read on 2026-11-11, inference only (no training or data generation), from
 [`docs/RESULTS_ROI.md`](docs/RESULTS_ROI.md). The fine-tuned 3B model matches the instructed 72B model on HD@5
-(p = 0.7) at a similar cost; it is not cheaper by a margin that matters.
+(p = 0.7) at a similar cost; it is not cheaper by a margin that matters. A post hoc rule that appends the missing
+disclosure to base replies beats both on HD@5 (55.0%; section 11 of
+[`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md)).
 
 ## TL;DR
 
@@ -49,6 +54,10 @@ Costs are list prices read on 2026-11-11, inference only (no training or data ge
   the time and fresh passes 66.4% (p = 0.0001). Counting only replies that keep the disclosure
   and help (**HD@5**), SFT still beats base (27.5% against 4.2%, p = 0.0002) and matches an
   instructed Qwen2.5-72B (30.8%). About a third of the DR@5 gain is repetition.
+- **A simple rule does better.** Appending the missing disclosure sentence to every base reply
+  scores DR@5 100% and HD@5 55.0%, above SFT and instructed Qwen2.5-72B (post hoc, model labels;
+  [`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md), section 11). Base already answers
+  helpfully; it only drops the disclosure.
 - **The lesson.** A per-turn compliance metric must also check that the reply answers the
   customer, and multi-turn training replies must vary across turns.
 
@@ -71,6 +80,7 @@ checker). HD@5: the turn-5 reply passes DR@5 and the LLM helpfulness panel calls
 | DPO (AlignTune), drop+warn pairs | 51.7% | 16.7% |
 | DPO (AlignTune), all pairs | 32.5% | 10.8% |
 | Qwen2.5-72B-Instruct, strict prompt (no training) | 35.0% | 30.8% |
+| Rule baseline: base + missing disclosure appended (post hoc, no training) | 100.0% | 55.0% |
 
 **First test split and held-out products (60 dialogues each).** Rendered in
 [`docs/RESULTS_FULL.md`](docs/RESULTS_FULL.md) and [`docs/RESULTS_LLAMA.md`](docs/RESULTS_LLAMA.md).

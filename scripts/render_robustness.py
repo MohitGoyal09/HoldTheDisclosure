@@ -512,6 +512,37 @@ def section_labels(sheet, label_files: list[Path]) -> list[str]:
     return out + [""]
 
 
+def section_rule(sheet, test2_rows, votes, rule_file: Path) -> list[str]:
+    """Post hoc rule baseline: base replies with every missing disclosure statement appended (`scripts/rule_baseline.py`)."""
+    if not rule_file.exists():
+        return []
+    keep = {"base", "SFT v6", "Qwen2.5-72B, strict prompt"}
+    rows = [(n, f) for n, f in test2_rows if n in keep] + [("base + appended disclosure (rule)", rule_file)]
+    out = ["## 11. Rule baseline: append the missing disclosure to every base reply (post hoc)", "",
+           "Added 2026-11-14 after the study, not pre-registered. Each base reply on test2 gets the product sheet's "
+           "statement for every disclosure the rule checker finds missing, in the customer's script. Later turns were "
+           "generated from the unedited history, so this approximates a deployed filter. Panel as in section 9 "
+           "(model labels). Scenario-level tests against the rule baseline.", "",
+           "| system | DR@5 | fresh DR@5 | helpful at turn 5 | HD@5 | HD@5 diff vs rule [CI] | scenario p |",
+           "|---|---|---|---|---|---|---|"]
+    hd, dr_all, fr_all, hp = {}, {}, {}, {}
+    for name, f in rows:
+        ts = load_transcripts(f)
+        dr_all[name], fr_all[name], v = flags(sheet, ts), fresh_flags(sheet, ts, 0.9), system_votes(ts, votes)
+        hd[name] = {i: int(x and v.get(i, False)) for i, x in dr_all[name].items()}
+        hp[name] = sum(v.get(i, False) for i in dr_all[name])
+    rule = rows[-1][0]
+    for name, _ in rows:
+        n = len(dr_all[name])
+        cell = " | "
+        if name != rule:
+            _, p, lo, hi = cluster_test(hd[rule], hd[name])
+            cell = f"{100 * (sum(hd[name].values()) - sum(hd[rule].values())) / n:+.1f} [{100 * lo:+.1f}, {100 * hi:+.1f}] | {p:.2g}"
+        out.append(f"| {name} | {pct(sum(dr_all[name].values()) / n)} | {pct(sum(fr_all[name].values()) / n)} | "
+                   f"{pct(hp[name] / n)} | {pct(sum(hd[name].values()) / n)} | {cell} |")
+    return out + [""]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--old-checker", type=Path, default=Path("outputs/checker_v0"),
@@ -528,6 +559,7 @@ def main() -> None:
     ap.add_argument("--llama", type=Path, default=Path("outputs/staging/hf_data/eval/llama"))
     ap.add_argument("--test2-judges", type=Path, default=Path("outputs/judge_test2"))
     ap.add_argument("--varied", type=Path, default=Path("outputs/kaggle-eval-varied/eval"))
+    ap.add_argument("--rule-judges", type=Path, default=Path("outputs/judge_rule"))
     ap.add_argument("--out", type=Path, default=Path("docs/RESULTS_ROBUSTNESS.md"))
     a = ap.parse_args()
     sheet = load_sheet()
@@ -550,6 +582,11 @@ def main() -> None:
     if len(t2) == 3:
         lines += section_r1(sheet, sys_by_split["test2"], helpful_votes(t2), sys_by_split["test"], helpful_votes(helpful))
         lines += section_r2(sheet, a.varied, sys_by_split, helpful_votes(t2), a.base_dir)
+        rule = [rd(a.rule_judges / f"helpful_{n}.jsonl") for n in ("llama", "deepseek", "gptoss")
+                if (a.rule_judges / f"helpful_{n}.jsonl").exists()]
+        if len(rule) == 3:
+            lines += section_rule(sheet, sys_by_split["test2"], helpful_votes([x + y for x, y in zip(t2, rule)]),
+                                  a.eval / "base_rule_test2.jsonl")
     a.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {a.out}")
 

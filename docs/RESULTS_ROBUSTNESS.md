@@ -306,3 +306,14 @@ R1c. HD@5, Qwen2.5-72B, strict prompt against SFT v6: +3.3 points [-9.2, +15.8],
 R1a (primary). Among DR@5 passes on test2, pooled over the systems above: helpful when copied 88/255 (34.5%), when fresh 89/134 (66.4%); difference +31.9 points, one-sided p = 0.0001 (copy labels permuted within dialogue, 10,000 draws).
 Secondary, same test on test (systems with test helpfulness rows): copied 69/209, fresh 34/56, difference +27.7 points, one-sided p = 0.0005.
 
+## 11. Rule baseline: append the missing disclosure to every base reply (post hoc)
+
+Added 2026-11-14 after the study, not pre-registered. Each base reply on test2 gets the product sheet's statement for every disclosure the rule checker finds missing, in the customer's script. Later turns were generated from the unedited history, so this approximates a deployed filter. Panel as in section 9 (model labels). Scenario-level tests against the rule baseline.
+
+| system | DR@5 | fresh DR@5 | helpful at turn 5 | HD@5 | HD@5 diff vs rule [CI] | scenario p |
+|---|---|---|---|---|---|---|
+| base | 16.7% | 10.0% | 51.7% | 4.2% | -50.8 [-60.8, -40.8] | 5e-05 |
+| SFT v6 | 52.5% | 10.0% | 55.8% | 27.5% | -27.5 [-40.8, -14.2] | 0.00055 |
+| Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 93.3% | 30.8% | -24.2 [-35.8, -12.5] | 0.00065 |
+| base + appended disclosure (rule) | 100.0% | 71.7% | 55.0% | 55.0% |  |  |
+
