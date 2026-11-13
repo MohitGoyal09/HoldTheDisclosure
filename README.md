@@ -226,6 +226,9 @@ validation score, and one changed axis per run.
   check of 50 copied and fresh replies is in progress and not yet in these numbers.
 - **That fine-tuning beats a good prompt on a large model.** On HD@5, SFT and an instructed Qwen2.5-72B do not
   differ (27.5% against 30.8%, p = 0.7). SFT is higher on DR@5 partly because it copies.
+- **That the DPO numbers are DPO at its best.** AlignTune flattened every DPO training prompt to plain text
+  without role markers, while evaluation used the chat template (found after the runs; `docs/UPSTREAM.md`,
+  item 7). The SFT adapters are not affected.
 - **That the copying is fixed.** A retrain on varied training replies (R2, pre-registered) is queued; its result
   is not in this release.
 - **Large effects only.** Each comparison has 20 to 40 independent scenarios, so small differences are not

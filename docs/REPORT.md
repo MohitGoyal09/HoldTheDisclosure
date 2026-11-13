@@ -377,6 +377,10 @@ against 0%); see "Retention by repetition".
 
 ### DPO: it works only at a learning rate high enough to train
 
+All DPO runs share a format problem found after the study: AlignTune flattened each chat
+prompt to plain text without role markers, while evaluation used the chat template
+(Limitations; `docs/UPSTREAM.md`, item 7). Read the DPO results with that in mind.
+
 A 2x2 grid crosses pair mix (all pairs, or drop and warn only) with learning rate (5e-6, 5e-5).
 Pooled DR@5 over 60 dialogues (`docs/RESULTS_FULL.md`, Fig. 3):
 
@@ -729,6 +733,10 @@ and DPO intervals are wide.
 
 ## Limitations
 
+- Every DPO adapter was trained on prompts that AlignTune had flattened to plain text without
+  role markers or the chat template, and was evaluated with the chat template (found after the
+  runs; `docs/UPSTREAM.md`, item 7). The DPO results are therefore for a train and serve format
+  mismatch and may understate what DPO can do here. The SFT adapters are not affected.
 - One bank, ten products, synthetic dialogues. Real product documents are longer and less
   consistent than a product sheet.
 - The pushback ladder is scripted. An adaptive customer who argues with what the bot actually

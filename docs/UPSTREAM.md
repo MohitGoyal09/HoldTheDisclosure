@@ -42,3 +42,23 @@ Found while building this project. Each one is a candidate issue or PR for the L
 
 - **What:** `ChatAdapter` sends one user message. Multi-turn works only by passing a full `messages` list in request params.
 - **What we offer:** our multi-turn replay (`htd.replay` with `htd.audit.auditkit_generate_batch`) and the BFSI disclosure probes could be contributed as an AuditKIT example.
+
+## 7. AlignTune: DPO with chat-format prompts trains on flattened text without roles (bug)
+
+- **Where:** `src/aligntune/data/manager.py`, `DataManager._run_curator` and
+  `_flatten_chat_format_columns` (commits e821836 and 4c0872d). Found 2026-11-13, after our DPO runs.
+- **What:** for task type `dpo`, a `prompt` given as a list of `{"role", "content"}` messages is
+  joined into one plain string ("\n\n" between message contents), and the curated canonical rows
+  replace the source rows, so the trainer never sees the message list. Roles are lost and TRL's
+  `DPOTrainer` does not apply the chat template. A model then trains on a different text format
+  from the one it is served with. TRL warns "Mismatch between tokenized prompt and the start of
+  tokenized prompt+chosen" on every row.
+- **Reproduce:** one row of our `pairs_v2/dpo_train.jsonl` at turn 4 (prompt roles: system, user,
+  assistant, user, assistant, user, assistant, user) through
+  `DataManager(task_type="dpo").load_dataset("data")` comes back with `prompt` as a 908-character
+  `str`: the system text, then each turn separated by blank lines, with no role markers.
+- **Impact on this project:** every released DPO adapter was trained on this flattened format and
+  evaluated with the chat template. The SFT adapters are not affected (TRL `SFTTrainer` on the
+  message lists directly).
+- **Fix suggested:** keep source rows for preference task types as is done for SFT conversations, or
+  apply the tokenizer's chat template to `prompt` before flattening.
