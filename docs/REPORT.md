@@ -23,8 +23,8 @@ Qwen2.5-72B to 41.7% on test but not on held-out products (28.3%), and lifts Tin
 pushback lines (40.0%) but not on the first test split (11.7%).
 
 LoRA supervised fine-tuning and DPO (through AlignTune) on gated synthetic replies raise DR@5. On 120 new, native-reviewed pushback dialogues that no system was tuned on, all five trained systems beat base (32.5 to 52.5% against 16.7%; all Holm p < 0.01,
-pre-registered). The gain holds over training runs, a second model family, held-out products, a
-shuffled turn order and the untuned checker.
+pre-registered). The gain holds over training runs, a second model family, held-out products and a
+shuffled turn order.
 
 A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
 reply of the same model (29% of SFT dialogues on the new lines pass with a verbatim copy;
@@ -32,9 +32,9 @@ instructed Qwen2.5-72B almost never copies). We then pre-registered a test of wh
 costs. A three-family LLM panel rates copied passes helpful far less often than
 fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
 that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
-4.2%, p = 0.0002) and matches instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
-DR@5 gain is repetition that does not answer the customer. A post hoc rule that appends the
-missing disclosure sentence to every base reply does better still (HD@5 55.0%, DR@5 100%). SFT also copies on control products (51 of
+4.2%, p = 0.0002) and is not detectably different from instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
+DR@5 gain is repetition that does not answer the customer. A post hoc rule appending the
+missing disclosure sentence to every base reply does better still (HD@5 55.0%; 47.5% by meaning-based judges). SFT also copies on control products (51 of
 60 dialogues, base 13); its training replies were already near-repeats (median similarity 0.86).
 
 Other costs: no trained system adds a warning to products that need none; SFT answers control
@@ -618,9 +618,10 @@ on held-out and test2 (SFT v6 71.7% against 28.3% and 52.5% against 35.0%, scena
 p = 0.0056 and 0.0036; on test 56.7% against 41.7%, p = 0.095), but it reaches its score with
 fresh replies. On fresh DR@5 it is above SFT v6 on test and test2 (38.3% against 6.7% and 34.2%
 against 10.0%, p = 0.0001 and 0.00015; held-out 28.3% against 11.7%, p = 0.11). On HD@5 (test2,
-pre-registered), the two do not differ (30.8% against 27.5%, p = 0.7;
-`docs/RESULTS_ROBUSTNESS.md`, sections 8 and 9). So the fine-tuned 3B model matches an instructed
-large model on helpful disclosures, but reaches its higher DR@5 partly by copying.
+pre-registered), no difference is detected (30.8% against 27.5%, +3.3 points, 95% CI -9.2 to +15.8, p = 0.7;
+`docs/RESULTS_ROBUSTNESS.md`, sections 8 and 9). This is not evidence that they are equal: with 40
+scenarios, a gap of up to about 16 points either way cannot be excluded. The fine-tuned 3B model and
+the instructed large model are close on helpful disclosures, and SFT reaches its higher DR@5 partly by copying.
 
 ## Robustness checks
 
@@ -714,6 +715,30 @@ fails a reply only for explicit dismissals); helpfulness is from the LLM panel, 
 this as a further sign that per-turn compliance is cheap to satisfy, and that a trained system
 should be compared with such a rule before its gain is credited to training.
 
+### Does the rule still win with a meaning-based judge? (J1, pre-registered)
+
+Checker DR@5 is 100% for the rule by construction, so we registered a check that does not use the sheet's
+keywords before running it (`docs/PREREGISTRATION.md`, final study; `docs/RESULTS_ROBUSTNESS.md`, section 12).
+The reference panel (Llama-3.3-70B, DeepSeek-V3, gpt-oss-120b) judged every test2 turn-5 reply of nine systems
+(3,240 labels, 0 errors).
+
+| system (test2) | checker DR@5 | panel DR@5 | panel HD@5 |
+|---|---|---|---|
+| base + appended disclosure (rule) | 100.0% | 69.2% | 47.5% |
+| SFT v6 | 52.5% | 66.7% | 31.7% |
+| Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 30.0% |
+| base | 16.7% | 6.7% | 2.5% |
+
+The panel credits the rule with 69.2%, not 100%: about a third of the rule's checker passes are not passes by
+meaning. In the four we read, two panel models called a correctly appended disclosure a dismissal or
+unnecessary because the customer had asked not to hear it (a judge error of the kind we saw with rubric v1),
+and in others the base text around the appended sentence downplays or contradicts it. Even so, on panel HD@5 the
+rule beats SFT v6 by 15.8 points (95% CI 4.2 to 27.5, p = 0.015; J1a). The panel also credits SFT with more
+disclosures than the checker does (66.7% against 52.5%), so the checker is conservative for trained systems, and
+on panel HD@5 SFT v6 and instructed Qwen2.5-72B are again close (31.7% and 30.0%). Agreement among the three
+panel models is moderate for helpfulness (Fleiss' kappa 0.450 over 1,080 replies) and substantial for
+disclosure (0.647).
+
 ### Retrain on varied replies (R2, pre-registered)
 
 To test the training-data cause, we rewrote every chosen training reply at turns 2 to 5 whose
@@ -761,6 +786,14 @@ and DPO intervals are wide.
 
 - The rule baseline (append the missing disclosure sentence) beats every trained system on HD@5. It
   was added post hoc, edits the replies after generation, and is scored by model labels only.
+- The product sheet statements are the rule's appended text, the rule-distilled training targets and
+  (through their key facts) the checker's patterns, so checker DR@5 is 100% for the rule by construction
+  and favours the rule-distilled system. The meaning-based panel credits the rule with 69.2% and still
+  ranks it above SFT on HD@5 (J1, section 12 of `docs/RESULTS_ROBUSTNESS.md`); it is also model labels,
+  and its three models agree only moderately on helpfulness (Fleiss' kappa 0.450).
+- With 40 independent scenarios, a 95% interval for a difference between two systems spans about 20 to
+  27 points (sections 9 and 11 of `docs/RESULTS_ROBUSTNESS.md`). A non-significant difference is not evidence of equality (for example SFT against
+  instructed Qwen2.5-72B on HD@5: -9.2 to +15.8 points).
 - Every DPO adapter was trained on prompts that AlignTune had flattened to plain text without
   role markers or the chat template, and was evaluated with the chat template (found after the
   runs; `docs/UPSTREAM.md`, item 7). The DPO results are therefore for a train and serve format

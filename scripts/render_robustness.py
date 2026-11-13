@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from htd.agreement import fleiss_kappa, majority  # noqa: E402
 from htd.audit import mcnemar_exact_p, paired_diff_ci  # noqa: E402
 from htd.helpful import helpful_votes  # noqa: E402
 from htd.replay import load_transcripts  # noqa: E402
@@ -543,6 +544,117 @@ def section_rule(sheet, test2_rows, votes, rule_file: Path) -> list[str]:
     return out + [""]
 
 
+def section_j1(sheet, rows, help_rows, disc_rows) -> list[str]:
+    """Pre-registered J1 (final study): meaning-based disclosure on test2 from the reference panel, not the checker."""
+    hv = helpful_votes(help_rows)
+    disc = defaultdict(list)
+    for panel in disc_rows:
+        for r in panel:
+            disc[r["dialogue_id"]].append(r["judge_label"])
+    out = ["## 12. Meaning-based disclosure on test2 (J1, pre-registered)", "",
+           "Registered 2026-11-14 before any of these labels existed (`docs/PREREGISTRATION.md`, final study). Panel "
+           "DR@5: the reference panel (Llama-3.3-70B, DeepSeek-V3, gpt-oss-120b, rubric `panel`) majority says PASS; it "
+           "uses neither the checker's keyword lists nor the sheet statements as patterns. Panel HD@5: panel PASS and "
+           "helpfulness-panel helpful. Model labels. Scenario-level tests as in section 1.", "",
+           "| system | checker DR@5 | panel DR@5 | checker and panel agree | no panel majority | panel HD@5 |",
+           "|---|---|---|---|---|---|"]
+    phd = {}
+    for name, f in rows:
+        ts = [t for t in load_transcripts(f) if sheet.product(t.product_id).requires_disclosure and len(t.replies) >= 5]
+        v = system_votes(ts, hv)
+        chk = flags(sheet, ts)
+        pdr, agree, nomaj = {}, 0, 0
+        for t in ts:
+            lab = majority(disc.get(f"{t.model_name}|{t.variant}|{t.dialogue_id}|t5", ["?"]))
+            nomaj += lab is None
+            pdr[t.dialogue_id] = int(lab == "PASS")
+            agree += pdr[t.dialogue_id] == chk[t.dialogue_id]
+        phd[name] = {i: int(x and v.get(i, False)) for i, x in pdr.items()}
+        n = len(ts)
+        out.append(f"| {name} | {pct(sum(chk.values()) / n)} | {pct(sum(pdr.values()) / n)} | {agree}/{n} | {nomaj} | "
+                   f"{pct(sum(phd[name].values()) / n)} |")
+    r, s6 = "base + appended disclosure (rule)", "SFT v6"
+    if r in phd and s6 in phd:
+        _, p, lo, hi = cluster_test(phd[s6], phd[r])
+        d = 100 * (sum(phd[r].values()) - sum(phd[s6].values())) / len(phd[r])
+        out += ["", f"J1a (primary). Panel HD@5, rule baseline against SFT v6: {d:+.1f} points [{100 * lo:+.1f}, "
+                f"{100 * hi:+.1f}], scenario p = {p:.2g}."]
+    ids = set.intersection(*({x["dialogue_id"] for x in panel if x["helpful"] != "ERROR"} for panel in help_rows))
+    by = [{x["dialogue_id"]: x["helpful"] for x in panel} for panel in help_rows]
+    hk = [[b[i] for b in by] for i in sorted(ids)]
+    dk = [labs for labs in disc.values() if len(labs) == len(disc_rows)]
+    out += [f"J1c. Fleiss' kappa, helpfulness panel on all test2 rows: {fleiss_kappa(hk, ('YES', 'NO')):.3f} "
+            f"({len(hk)} replies); disclosure panel on the rows above: {fleiss_kappa(dk):.3f} ({len(dk)} replies).", ""]
+    return out
+
+
+def section_final(sheet, sys_by_split, votes, dpo_chat: Path, rule_sft: Path, base_dir: Path) -> list[str]:
+    """Pre-registered D1 (corrected DPO format) and D2 (rule distillation), Holm over the two primaries."""
+    named = dict(sys_by_split["test2"])
+    have = [(k, f) for k, f in (("D1", dpo_chat / "aligntune_dpo_drop_lr5e5_chat_test2.jsonl"),
+                                ("D2", rule_sft / "sft_rule_s1_test2.jsonl")) if f.exists()]
+    if not have:
+        return []
+    out = ["## 13. Corrected DPO format (D1) and rule distillation (D2), pre-registered", "",
+           "Registered 2026-11-14 before either adapter was trained (`docs/PREREGISTRATION.md`, final study). test2, "
+           "scenario-level sign-flip tests; D2 is one-sided (half the two-sided p when the difference is positive); the "
+           "two primaries are Holm-corrected together. HD@5 uses the checker and the helpfulness panel (model labels).", "",
+           "| system | DR@5 | pass, similarity >= 0.9 | fresh DR@5 | HD@5 |", "|---|---|---|---|---|"]
+    res = {}
+    rows = [("base", named["base"]), ("DPO drop+warn (flattened format)", named["DPO drop+warn"]),
+            ("SFT seed 1", named["SFT seed 1"])] + [
+           ("DPO drop+warn (chat format)" if k == "D1" else "SFT rule-distilled", f) for k, f in have]
+    rule = Path(str(named["base"]).replace("base_test2", "base_rule_test2"))
+    if rule.exists():
+        rows.append(("base + appended disclosure (rule)", rule))
+    for name, path in rows:
+        ts = load_transcripts(path)
+        dr, fr = flags(sheet, ts), fresh_flags(sheet, ts, 0.9)
+        v = system_votes(ts, votes)
+        res[name] = {i: int(x and v.get(i, False)) for i, x in dr.items()}, dr, fr
+        n = len(dr)
+        out.append(f"| {name} | {pct(sum(dr.values()) / n)} | {pct((sum(dr.values()) - sum(fr.values())) / n)} | "
+                   f"{pct(sum(fr.values()) / n)} | {pct(sum(res[name][0].values()) / n)} |")
+    prim, lines = {}, []
+    tests = {"D1": ("DPO drop+warn (flattened format)", "DPO drop+warn (chat format)", False),
+             "D2": ("SFT seed 1", "SFT rule-distilled", True)}
+    for k, _ in have:
+        a, b, one = tests[k]
+        _, p, lo, hi = cluster_test(res[a][0], res[b][0])
+        d = 100 * (sum(res[b][0].values()) - sum(res[a][0].values())) / len(res[a][0])
+        if one:
+            p = p / 2 if d > 0 else 1 - p / 2
+        prim[k] = p
+        lines.append((k, f"HD@5, {b} against {a}: {d:+.1f} points [{100 * lo:+.1f}, {100 * hi:+.1f}], "
+                         f"{'one-sided ' if one else ''}p = {p:.2g}"))
+    adj = holm(prim)
+    out.append("")
+    out += [f"{k} (primary). {txt}, Holm p = {adj[k]:.2g}." for k, txt in lines]
+    for a, b in (("base", "DPO drop+warn (chat format)"), ("base", "SFT rule-distilled"),
+                 ("base + appended disclosure (rule)", "SFT rule-distilled")):
+        if a in res and b in res:
+            _, p, lo, hi = cluster_test(res[a][0], res[b][0])
+            out.append(f"Secondary. HD@5, {b} against {a}: "
+                       f"{100 * (sum(res[b][0].values()) - sum(res[a][0].values())) / len(res[a][0]):+.1f} points "
+                       f"[{100 * lo:+.1f}, {100 * hi:+.1f}], p = {p:.2g}.")
+    if "SFT rule-distilled" in res:
+        _, p, lo, hi = cluster_test(res["SFT seed 1"][2], res["SFT rule-distilled"][2])
+        out.append(f"Secondary. Fresh DR@5, SFT rule-distilled against SFT seed 1: "
+                   f"{100 * (sum(res['SFT rule-distilled'][2].values()) - sum(res['SFT seed 1'][2].values())) / len(res['SFT seed 1'][2]):+.1f}"
+                   f" points [{100 * lo:+.1f}, {100 * hi:+.1f}], p = {p:.2g}.")
+        ctrl = rule_sft / "sft_rule_s1_control.jsonl"
+        if ctrl.exists():
+            parts = []
+            for name, path in (("base", base_dir / "fire_control_plain.jsonl"), ("SFT seed 1", base_dir / "sft_s1_control.jsonl"),
+                               ("SFT rule-distilled", ctrl)):
+                ts = load_transcripts(path)
+                warn = sum(bool(check_reply(t.replies[4], sheet.product(t.product_id), sheet, t.script).warning_markers_found)
+                           for t in ts)
+                parts.append(f"{name} {warn}/{len(ts)} unneeded warnings at turn 5")
+            out.append("Control test: " + "; ".join(parts) + ".")
+    return out + [""]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--old-checker", type=Path, default=Path("outputs/checker_v0"),
@@ -560,6 +672,9 @@ def main() -> None:
     ap.add_argument("--test2-judges", type=Path, default=Path("outputs/judge_test2"))
     ap.add_argument("--varied", type=Path, default=Path("outputs/kaggle-eval-varied/eval"))
     ap.add_argument("--rule-judges", type=Path, default=Path("outputs/judge_rule"))
+    ap.add_argument("--disc-judges", type=Path, default=Path("outputs/judge_disc_test2"))
+    ap.add_argument("--dpo-chat", type=Path, default=Path("outputs/kaggle-dpo-chat/eval"))
+    ap.add_argument("--rule-sft", type=Path, default=Path("outputs/kaggle-eval-rule/eval"))
     ap.add_argument("--out", type=Path, default=Path("docs/RESULTS_ROBUSTNESS.md"))
     a = ap.parse_args()
     sheet = load_sheet()
@@ -587,6 +702,13 @@ def main() -> None:
         if len(rule) == 3:
             lines += section_rule(sheet, sys_by_split["test2"], helpful_votes([x + y for x, y in zip(t2, rule)]),
                                   a.eval / "base_rule_test2.jsonl")
+            lines += section_final(sheet, sys_by_split, helpful_votes([x + y for x, y in zip(t2, rule)]), a.dpo_chat,
+                                   a.rule_sft, a.base_dir)
+            disc = [rd(a.disc_judges / f"panel_{n}.jsonl") for n in ("llama", "deepseek", "gptoss")
+                    if (a.disc_judges / f"panel_{n}.jsonl").exists()]
+            if len(disc) == 3:
+                j_rows = sys_by_split["test2"] + [("base + appended disclosure (rule)", a.eval / "base_rule_test2.jsonl")]
+                lines += section_j1(sheet, j_rows, [x + y for x, y in zip(t2, rule)], disc)
     a.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {a.out}")
 

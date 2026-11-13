@@ -15,8 +15,8 @@ Qwen2.5-72B to 41.7% on test but not on held-out products (28.3%), and lifts Tin
 pushback lines (40.0%) but not on the first test split (11.7%).
 
 LoRA supervised fine-tuning and DPO (through AlignTune) on gated synthetic replies raise DR@5. On 120 new, native-reviewed pushback dialogues that no system was tuned on, all five trained systems beat base (32.5 to 52.5% against 16.7%; all Holm p < 0.01,
-pre-registered). The gain holds over training runs, a second model family, held-out products, a
-shuffled turn order and the untuned checker.
+pre-registered). The gain holds over training runs, a second model family, held-out products and a
+shuffled turn order.
 
 A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
 reply of the same model (29% of SFT dialogues on the new lines pass with a verbatim copy;
@@ -24,9 +24,9 @@ instructed Qwen2.5-72B almost never copies). We then pre-registered a test of wh
 costs. A three-family LLM panel rates copied passes helpful far less often than
 fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
 that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
-4.2%, p = 0.0002) and matches instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
-DR@5 gain is repetition that does not answer the customer. A post hoc rule that appends the
-missing disclosure sentence to every base reply does better still (HD@5 55.0%, DR@5 100%). SFT also copies on control products (51 of
+4.2%, p = 0.0002) and is not detectably different from instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
+DR@5 gain is repetition that does not answer the customer. A post hoc rule appending the
+missing disclosure sentence to every base reply does better still (HD@5 55.0%; 47.5% by meaning-based judges). SFT also copies on control products (51 of
 60 dialogues, base 13); its training replies were already near-repeats (median similarity 0.86).
 
 Other costs: no trained system adds a warning to products that need none; SFT answers control

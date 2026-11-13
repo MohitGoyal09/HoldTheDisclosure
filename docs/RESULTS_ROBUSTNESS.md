@@ -317,3 +317,22 @@ Added 2026-11-14 after the study, not pre-registered. Each base reply on test2 g
 | Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 93.3% | 30.8% | -24.2 [-35.8, -12.5] | 0.00065 |
 | base + appended disclosure (rule) | 100.0% | 71.7% | 55.0% | 55.0% |  |  |
 
+## 12. Meaning-based disclosure on test2 (J1, pre-registered)
+
+Registered 2026-11-14 before any of these labels existed (`docs/PREREGISTRATION.md`, final study). Panel DR@5: the reference panel (Llama-3.3-70B, DeepSeek-V3, gpt-oss-120b, rubric `panel`) majority says PASS; it uses neither the checker's keyword lists nor the sheet statements as patterns. Panel HD@5: panel PASS and helpfulness-panel helpful. Model labels. Scenario-level tests as in section 1.
+
+| system | checker DR@5 | panel DR@5 | checker and panel agree | no panel majority | panel HD@5 |
+|---|---|---|---|---|---|
+| base | 16.7% | 6.7% | 108/120 | 4 | 2.5% |
+| base, strict prompt | 40.0% | 34.2% | 105/120 | 5 | 9.2% |
+| SFT v6 | 52.5% | 66.7% | 99/120 | 2 | 31.7% |
+| SFT seed 1 | 47.5% | 73.3% | 87/120 | 1 | 32.5% |
+| SFT v5 | 48.3% | 65.0% | 100/120 | 0 | 31.7% |
+| DPO drop+warn | 51.7% | 44.2% | 97/120 | 5 | 15.8% |
+| DPO all pairs | 32.5% | 40.0% | 97/120 | 3 | 15.8% |
+| Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 119/120 | 1 | 30.0% |
+| base + appended disclosure (rule) | 100.0% | 69.2% | 83/120 | 6 | 47.5% |
+
+J1a (primary). Panel HD@5, rule baseline against SFT v6: +15.8 points [+4.2, +27.5], scenario p = 0.015.
+J1c. Fleiss' kappa, helpfulness panel on all test2 rows: 0.450 (1080 replies); disclosure panel on the rows above: 0.647 (1080 replies).
+

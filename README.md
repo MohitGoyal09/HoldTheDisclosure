@@ -34,8 +34,8 @@ Lexsi AI Safety Hackathon 2026, Track 1 (fine-tuning). English, Devanagari Hindi
 | Rule: base replies + the missing disclosure sentence appended (post hoc) | 100.0% | 55.0% | about the same as base, plus a string check |
 
 Costs are list prices read on 2026-11-11, inference only (no training or data generation), from
-[`docs/RESULTS_ROI.md`](docs/RESULTS_ROI.md). The fine-tuned 3B model matches the instructed 72B model on HD@5
-(p = 0.7) at a similar cost; it is not cheaper by a margin that matters. A post hoc rule that appends the missing
+[`docs/RESULTS_ROI.md`](docs/RESULTS_ROI.md). The fine-tuned 3B model is not detectably different from the instructed 72B model on HD@5
+(+3.3 points, 95% CI -9.2 to +15.8; not shown equal) at a similar cost; it is not cheaper by a margin that matters. A post hoc rule that appends the missing
 disclosure to base replies beats both on HD@5 (55.0%; section 11 of
 [`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md)).
 
@@ -52,10 +52,11 @@ disclosure to base replies beats both on HD@5 (55.0%; section 11 of
 - **Part of it is repetition.** Most passing trained replies copy one of the model's own earlier
   replies. In a pre-registered test, a three-model LLM panel calls copied passes helpful 34.5% of
   the time and fresh passes 66.4% (p = 0.0001). Counting only replies that keep the disclosure
-  and help (**HD@5**), SFT still beats base (27.5% against 4.2%, p = 0.0002) and matches an
-  instructed Qwen2.5-72B (30.8%). About a third of the DR@5 gain is repetition.
+  and help (**HD@5**), SFT still beats base (27.5% against 4.2%, p = 0.0002) and is not detectably
+  different from an instructed Qwen2.5-72B (30.8%; 95% CI of the gap -9.2 to +15.8 points). About a third of the DR@5 gain is repetition.
 - **A simple rule does better.** Appending the missing disclosure sentence to every base reply
-  scores DR@5 100% and HD@5 55.0%, above SFT and instructed Qwen2.5-72B (post hoc, model labels;
+  scores DR@5 100% and HD@5 55.0%, above SFT and instructed Qwen2.5-72B (post hoc, model labels; with
+  meaning-based judges instead of the keyword checker, 47.5% against SFT's 31.7%, pre-registered J1;
   [`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md), section 11). Base already answers
   helpfully; it only drops the disclosure.
 - **The lesson.** A per-turn compliance metric must also check that the reply answers the

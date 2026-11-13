@@ -149,4 +149,5 @@ python scripts/render_results.py
 | `RB` | local, HF inference API | Rule baseline (`scripts/rule_baseline.py`) on base test2; helpfulness panel as R1, 120 rows each | Complete, 0 errors. Post hoc | `outputs/judge_rule/`, `docs/RESULTS_ROBUSTNESS.md` section 11 |
 | `RD-train` | `rockerleo/htd-sft-rule` | Rule distillation: base Tiny Aya replays the 180 training dialogues with the rule applied turn by turn (`scripts/rule_targets.py`), pairs cut as pairs v2 (`--always-recover-turn 3`), SFT as `sft_lr1e4_s1` (seed 1, pinned versions). Post hoc, not pre-registered | Queued after R2-train is pushed (`outputs/rule_pipeline.sh`) | pending |
 | `RD-eval` | `rockerleo/htd-eval-rule` | `sft_rule_s1` on test2, test, control test | Queued after RD-train | pending |
+| `J1` | local, HF inference API | Reference disclosure panel (rubric `panel`) on 9 test2 systems, 360 rows per system | Complete, 0 errors. Pre-registered 2026-11-14 | `outputs/judge_disc_test2/`, `docs/RESULTS_ROBUSTNESS.md` section 12 |
 | `H1` | artifact page | Owner labels, 50 blind test2 passes | Open | `outputs/labels/copy/` |
