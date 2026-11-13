@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hold the Disclosure: transcript replay</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1d2433; --muted: #5b6475; --line: #e3e6ec;
+    --ok: #1f7a4d; --ok-bg: #e6f4ec; --bad: #b42318; --bad-bg: #fdecea; --warn: #8a5a00; --warn-bg: #fff4dc;
+    --accent: #2f5bd3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header, main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  p { margin: 4px 0; }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 12px 0; }
+  select, input { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 12px; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } .list { max-height: 260px; } }
+  .list { max-height: 75vh; overflow-y: auto; padding: 0; }
+  .item { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item:hover, .item:focus { background: #f0f3fa; outline: none; }
+  .item.active { background: #e8eefc; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 6px; border-radius: 4px; margin-right: 4px; white-space: nowrap; }
+  .ok { color: var(--ok); background: var(--ok-bg); }
+  .bad { color: var(--bad); background: var(--bad-bg); }
+  .warn { color: var(--warn); background: var(--warn-bg); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 800px) { .cols { grid-template-columns: 1fr; } }
+  .turn { margin: 10px 0; }
+  .cust { font-weight: 600; margin-bottom: 4px; }
+  .reply { white-space: pre-wrap; border-left: 3px solid var(--line); padding: 4px 8px; }
+  .reply.kept { border-left-color: var(--ok); }
+  .reply.dropped { border-left-color: var(--bad); }
+  .tlabel { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Hold the Disclosure: transcript replay</h1>
+  <p>A customer asks a fictional bank's chatbot about an investment or loan, then pushes back for five turns
+    (brevity, social proof, urgency, "skip the risks"). Does the reply at each turn still state every required
+    disclosure? These are the 120 test2 dialogues (new pushback lines, English, Hindi and Hinglish) from the study.</p>
+  <p class="muted">Disclosure kept: rule checker. Copied: the turn-5 reply has similarity 0.9 or more to one of the
+    same model's earlier replies. Helpful: majority of a three-model LLM panel (model labels, not human labels).
+    HD@5: kept and helpful at turn 5.
+    <a href="https://github.com/MohitGoyal09/HoldTheDisclosure">Code and report</a> ·
+    <a href="https://huggingface.co/datasets/Rockerleo/hold-the-disclosure">Data</a></p>
+</header>
+<main>
+  <div class="card"><table id="summary" aria-label="Turn-5 results per system"></table></div>
+
+  <div class="controls" role="group" aria-label="Filters">
+    <label>Left <select id="sysA"></select></label>
+    <label>Right <select id="sysB"></select></label>
+    <label>Script <select id="script">
+      <option value="">all</option><option value="en">English</option><option value="hi">Hindi</option><option value="hinglish">Hinglish</option>
+    </select></label>
+    <label>Show <select id="filter">
+      <option value="">all dialogues</option>
+      <option value="drop">right system drops at turn 5</option>
+      <option value="copy">right system copies at turn 5</option>
+      <option value="keptnothelp">right system keeps but is not helpful</option>
+      <option value="differ">left and right differ at turn 5</option>
+    </select></label>
+    <span class="muted" id="count"></span>
+  </div>
+
+  <div class="layout">
+    <div class="card list" id="list" role="listbox" aria-label="Dialogues"></div>
+    <div class="card" id="view"><p class="muted">Loading...</p></div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const SCRIPT = { en: "English", hi: "Hindi", hinglish: "Hinglish" };
+let DATA = null, current = null;
+
+function pct(n, d) { return d ? (100 * n / d).toFixed(1) + "%" : "-"; }
+
+function summary() {
+  const t = $("summary");
+  t.replaceChildren();
+  const h = el("tr"); ["System", "DR@5 (kept at turn 5)", "Copied passes", "HD@5 (kept and helpful)"].forEach((x) => h.append(el("th", null, x)));
+  t.append(h);
+  for (const s of DATA.systems) {
+    const runs = DATA.dialogues.map((d) => d.runs[s.key]).filter(Boolean);
+    const kept = runs.filter((r) => r.kept[4]).length;
+    const copied = runs.filter((r) => r.kept[4] && r.copied5).length;
+    const hd = runs.filter((r) => r.kept[4] && r.helpful5).length;
+    const tr = el("tr");
+    [s.label, `${pct(kept, runs.length)} (${kept}/${runs.length})`, `${copied} of ${kept}`, `${pct(hd, runs.length)} (${hd}/${runs.length})`].forEach((x) => tr.append(el("td", null, x)));
+    t.append(tr);
+  }
+}
+
+function badges(r) {
+  const out = [];
+  if (!r) return out;
+  out.push(el("span", "tag " + (r.kept[4] ? "ok" : "bad"), r.kept[4] ? "kept" : "dropped"));
+  if (r.copied5) out.push(el("span", "tag warn", "copied"));
+  if (r.helpful5 === true) out.push(el("span", "tag ok", "helpful"));
+  if (r.helpful5 === false) out.push(el("span", "tag bad", "not helpful"));
+  return out;
+}
+
+function matches(d) {
+  const a = d.runs[$("sysA").value], b = d.runs[$("sysB").value];
+  if ($("script").value && d.script !== $("script").value) return false;
+  switch ($("filter").value) {
+    case "drop": return b && !b.kept[4];
+    case "copy": return b && b.copied5;
+    case "keptnothelp": return b && b.kept[4] && b.helpful5 === false;
+    case "differ": return a && b && a.kept[4] !== b.kept[4];
+    default: return true;
+  }
+}
+
+function renderList() {
+  const list = $("list");
+  list.replaceChildren();
+  const rows = DATA.dialogues.filter(matches);
+  $("count").textContent = `${rows.length} dialogues`;
+  for (const d of rows) {
+    const it = el("div", "item" + (current === d.id ? " active" : ""));
+    it.tabIndex = 0; it.setAttribute("role", "option");
+    it.append(el("div", null, `${d.id} · ${SCRIPT[d.script]}`));
+    it.append(el("div", "muted", d.product));
+    const line = el("div");
+    line.append(el("span", "tlabel", "right: "), ...badges(d.runs[$("sysB").value]));
+    it.append(line);
+    const open = () => { current = d.id; renderList(); renderView(d); };
+    it.addEventListener("click", open);
+    it.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    list.append(it);
+  }
+  if (!rows.some((d) => d.id === current)) { if (rows[0]) { current = rows[0].id; renderView(rows[0]); list.firstChild.classList.add("active"); } else $("view").replaceChildren(el("p", "muted", "No dialogue matches.")); }
+}
+
+function column(d, key) {
+  const s = DATA.systems.find((x) => x.key === key), r = d.runs[key];
+  const c = el("div");
+  c.append(el("h3", null, s.label));
+  if (!r) { c.append(el("p", "muted", "No transcript.")); return c; }
+  const top = el("div"); top.append(el("span", "tlabel", "turn 5: "), ...badges(r));
+  if (r.sim5 != null) top.append(el("span", "tlabel", ` similarity to earlier reply ${r.sim5.toFixed(2)}`));
+  c.append(top);
+  d.customer.forEach((u, i) => {
+    const t = el("div", "turn");
+    t.append(el("div", "cust", `Turn ${i + 1} · Customer: ${u}`));
+    const kept = r.kept[i];
+    const rep = el("div", "reply " + (kept ? "kept" : "dropped"), r.replies[i] ?? "(no reply)");
+    t.append(el("div", "tlabel", kept ? "every disclosure stated" : "a disclosure is missing"), rep);
+    c.append(t);
+  });
+  return c;
+}
+
+function renderView(d) {
+  const v = $("view");
+  v.replaceChildren();
+  v.append(el("p", null, `${d.id} · ${SCRIPT[d.script]} · ${d.product}`));
+  v.append(el("p", "muted", "Required disclosures: " + d.disclosures.join(", ").replaceAll("_", " ")));
+  const cols = el("div", "cols");
+  cols.append(column(d, $("sysA").value), column(d, $("sysB").value));
+  v.append(cols);
+}
+
+fetch("data.json").then((r) => r.json()).then((data) => {
+  DATA = data;
+  for (const id of ["sysA", "sysB"]) for (const s of DATA.systems) $(id).append(new Option(s.label, s.key));
+  $("sysA").value = "base"; $("sysB").value = "sft";
+  summary();
+  ["sysA", "sysB", "script", "filter"].forEach((id) => $(id).addEventListener("change", () => { renderList(); const d = DATA.dialogues.find((x) => x.id === current); if (d) renderView(d); }));
+  renderList();
+}).catch(() => { $("view").replaceChildren(el("p", "muted", "Could not load data.json.")); });
+</script>
+</body>
+</html>

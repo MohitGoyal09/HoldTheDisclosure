@@ -10,7 +10,29 @@ Lexsi AI Safety Hackathon 2026, Track 1 (fine-tuning). English, Devanagari Hindi
 [Abstract](docs/ABSTRACT.md) ·
 [Pre-registration](docs/PREREGISTRATION.md) ·
 [Adapters (HF)](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-adapters-6af5bec87ee4a0a0e854c692) ·
-[Data and logs (HF)](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-data-and-logs-6af5becc1eead73a3df34388)
+[Data and logs (HF)](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-data-and-logs-6af5becc1eead73a3df34388) ·
+[Transcript replay (HF Space)](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay)
+
+## For judges: the 60-second view
+
+1. Read the four TL;DR bullets below.
+2. Look at the figure under them: the disclosure score split into fresh and copied replies, with HD@5.
+3. Open the [transcript replay](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay), set the right
+   side to "SFT (main run)" and "Show: right system copies at turn 5" to see the repetition yourself (no GPU).
+4. Check that the tests were fixed in advance: [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), with dated
+   amendments.
+
+**Results at a glance** (120 new pushback dialogues, turn 5):
+
+| System | DR@5 (disclosure kept) | HD@5 (kept and helpful) | Cost per 1,000 five-turn dialogues |
+|---|---|---|---|
+| Tiny Aya Fire 3.35B, base | 16.7% | 4.2% | about the same as the adapter (same model) |
+| Tiny Aya Fire + SFT adapter (ours) | 52.5% | 27.5% | about $1.07 (one T4 GPU) |
+| Qwen2.5-72B-Instruct, strict prompt | 35.0% | 30.8% | about $1.39 (API, lowest listed price) |
+
+Costs are list prices read on 2026-11-11, inference only (no training or data generation), from
+[`docs/RESULTS_ROI.md`](docs/RESULTS_ROI.md). The fine-tuned 3B model matches the instructed 72B model on HD@5
+(p = 0.7) at a similar cost; it is not cheaper by a margin that matters.
 
 ## TL;DR
 
@@ -88,6 +110,7 @@ All figures, with captions and alt text: [`docs/figures/`](docs/figures/README.m
 |---|---|
 | 12 LoRA adapters (Tiny Aya Fire SFT and DPO, Llama-3.2-3B SFT), each with a model card | [HF collection](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-adapters-6af5bec87ee4a0a0e854c692) |
 | Training data, evaluation transcripts, judge and panel logs | [HF dataset `Rockerleo/hold-the-disclosure`](https://huggingface.co/datasets/Rockerleo/hold-the-disclosure) |
+| Transcript replay, no GPU (built by `scripts/build_gallery.py`) | [HF Space](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay) |
 | Full write-up | [`docs/REPORT.md`](docs/REPORT.md), [`docs/REPORT.pdf`](docs/REPORT.pdf) |
 | Pre-registration and amendments | [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) |
 | Every run, with kernel and status | [`docs/RUNS.md`](docs/RUNS.md) |
@@ -195,12 +218,19 @@ Before pushing any Kaggle notebook, run it locally against a fake mount:
 The experiment loop is in `experiments/protocol.md`: six binary criteria, a fixed
 validation score, and one changed axis per run.
 
-## Limitations
+## What this does not show
 
-One fictional bank; synthetic, scripted dialogues; 20 to 40 independent scenarios per comparison;
-helpfulness and agreement from model labels, not human labels; the repetition finding was found
-post hoc and then tested with a pre-registered analysis. The report lists every deviation from the
-pre-registration.
+- **That it works with real customers.** The dialogues are synthetic and scripted, for one fictional bank. A
+  live customer adapts; our pushback ladder does not.
+- **That humans agree with the helpfulness labels.** Helpfulness comes from a panel of three LLMs. A blind human
+  check of 50 copied and fresh replies is in progress and not yet in these numbers.
+- **That fine-tuning beats a good prompt on a large model.** On HD@5, SFT and an instructed Qwen2.5-72B do not
+  differ (27.5% against 30.8%, p = 0.7). SFT is higher on DR@5 partly because it copies.
+- **That the copying is fixed.** A retrain on varied training replies (R2, pre-registered) is queued; its result
+  is not in this release.
+- **Large effects only.** Each comparison has 20 to 40 independent scenarios, so small differences are not
+  detectable. The repetition finding was found after the main study and then tested with a pre-registered
+  analysis. Every deviation from the pre-registration is listed in the report.
 
 ## Licence
 
