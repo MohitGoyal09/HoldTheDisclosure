@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install (Python 3.11, locked, with the Lexsi tools)
+        run: uv sync --frozen --python 3.11 --extra dev --extra lexsi
+      - name: Run tests
+        run: uv run pytest -q
+
+  verify:
+    name: Headline numbers from the published data
+    runs-on: ubuntu-latest
+    needs: tests
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen --python 3.11 --extra dev --extra lexsi
+      - name: Recompute DR@5 and HD@5 for every test2 system from the HF dataset
+        run: |
+          uv pip install huggingface_hub
+          PYTHON=.venv/bin/python scripts/verify.sh "$RUNNER_TEMP/htd-snapshot"
