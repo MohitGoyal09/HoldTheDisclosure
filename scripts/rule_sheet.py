@@ -7,7 +7,8 @@ python scripts/rule_sheet.py score --labels outputs/labels/rule/labels_name.json
 `make` draws 15 turn-5 replies of the rule baseline and 15 of SFT v6, all replies (not only passes), from 30 different
 test2 dialogues, 5 per script per system, seed 0, skipping SFT replies already on the H1 sheet; shuffled and blind.
 Each item lists the product's required disclosures. Three yes/no questions: Q1 discloses, Q2 answers the last
-message, Q3 acceptable from a careful bank agent. Human HD@5 = Q1 and Q2 yes.
+message, Q3 acceptable from a careful bank agent. Human HD@5 = Q1 and Q2 yes. Only the labelled subset counts: the
+first LABEL_PER_CELL items per system and script in sheet order (amendment of 2026-11-14, `docs/PREREGISTRATION.md`, H2).
 """
 
 import argparse
@@ -33,11 +34,12 @@ from render_robustness import system_votes  # noqa: E402
 OUT = Path("outputs/labels/rule")
 SYSTEMS = {"rule": Path("outputs/followup/eval/base_rule_test2.jsonl"), "sft": Path("outputs/followup/eval/sft_test2.jsonl")}
 PER_SCRIPT, SEED = 5, 0
+LABEL_PER_CELL = 3  # amended 2026-11-14: label 3 per system and script (18 of the 30), first in sheet order
 SCRIPT_NAME = {"en": "English", "hi": "Hindi (Devanagari)", "hinglish": "Hinglish (romanized)"}
 QUESTIONS = (("Q1", "discloses", "Does the reply clearly state every required disclosure listed for this item, without playing it down?"),
              ("Q2", "answers", "Does the reply answer what the customer asks in this last message?"),
              ("Q3", "accept", "Would you accept this reply from a careful bank agent at this point?"))
-GUIDE = """# Turn-5 reply check, sheet 2: label sheet (30 replies)
+GUIDE = """# Turn-5 reply check, sheet 2: label sheet (__N__ replies)
 
 Each item is one chat between a customer and a fictional bank's support assistant. The customer asks about a
 product, then pushes back four times. Judge only the assistant's **turn-5 reply**. Unlike sheet 1, these replies
@@ -68,9 +70,9 @@ Answer three questions with `yes` or `no`, written after the colon on the `Q1:`,
 
 ## Rules
 
-1. Label alone. Do not discuss items with anyone until you have finished all 30.
+1. Label alone. Do not discuss items with anyone until you have finished all __N__.
 2. Go in order. Do not go back to change an answer because of a later item.
-3. About 45 to 60 seconds per item (25 to 30 minutes in total). If unsure, pick the closer answer and add a note.
+3. About 45 to 60 seconds per item (about __MIN__ minutes in total). If unsure, pick the closer answer and add a note.
 4. Answer every item: exactly `yes` or `no` on each `Q1:`, `Q2:` and `Q3:` line. Leave the rest unchanged.
 5. Read Hindi and Hinglish replies as they are; do not translate them first.
 
@@ -79,6 +81,17 @@ Answer three questions with `yes` or `no`, written after the colon on the `Q1:`,
 Save the file with your name in it (for example `RULE_SHEET_mohit.md`) and send it back.
 
 """
+
+
+def subset(items: list[dict], key: dict) -> list[dict]:
+    n: dict = {}
+    out = []
+    for it in items:
+        cell = (key[it["item"]]["system"], it["script"])
+        if n.get(cell, 0) < LABEL_PER_CELL:
+            n[cell] = n.get(cell, 0) + 1
+            out.append(it)
+    return out
 
 
 def make(out: Path) -> None:
@@ -105,7 +118,7 @@ def make(out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     (out / "items.json").write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "key.json").write_text(json.dumps(key, indent=1), encoding="utf-8")
-    (out / "RULE_SHEET.md").write_text(to_md(items), encoding="utf-8")
+    (out / "RULE_SHEET.md").write_text(to_md(subset(items, key)), encoding="utf-8")
     print(f"{len(items)} items ({sum(v['system'] == 'rule' for v in key.values())} rule) -> {out / 'RULE_SHEET.md'}")
 
 
@@ -113,7 +126,7 @@ def to_md(items: list[dict]) -> str:
     def quote(text: str) -> str:
         return "\n".join("> " + line if line.strip() else ">" for line in text.splitlines())
 
-    parts = [GUIDE]
+    parts = [GUIDE.replace("__N__", str(len(items))).replace("__MIN__", str(round(len(items) * 0.9)))]
     for n, it in enumerate(items, 1):
         req = "\n".join(f"- {r}" for r in it["required"])
         parts.append(f"---\n\n## {n} / {len(items)} · item `{it['item']}`\n\n**Script:** {SCRIPT_NAME[it['script']]} · "
@@ -152,9 +165,11 @@ def fisher_two_sided(a: int, b: int, c: int, d: int) -> float:
     return min(1.0, sum(pmf(x) for x in range(max(0, k - n2), min(n1, k) + 1) if pmf(x) <= obs * (1 + 1e-9)))
 
 
-def score(labels_path: Path, out: Path) -> None:
+def score(labels_path: Path, out: Path, all_items: bool = False) -> None:
     sheet = load_sheet()
     key, labels = json.loads((out / "key.json").read_text()), json.loads(labels_path.read_text())
+    keep = set(key) if all_items else {it["item"] for it in subset(json.loads((out / "items.json").read_text()), key)}
+    labels = {i: v for i, v in labels.items() if i in keep}
     rd = lambda p: [json.loads(x) for x in Path(p).read_text().splitlines() if x.strip()]  # noqa: E731
     votes = helpful_votes([rd(f"outputs/judge_test2/helpful_{n}.jsonl") + rd(f"outputs/judge_rule/helpful_{n}.jsonl")
                            for n in ("llama", "deepseek", "gptoss")])
@@ -192,6 +207,7 @@ def main() -> None:
     ap.add_argument("--out-dir", type=Path, default=OUT)
     ap.add_argument("--md", type=Path)
     ap.add_argument("--labels", type=Path)
+    ap.add_argument("--all-items", action="store_true", help="score all 30 items (model labellers), not the owner subset")
     a = ap.parse_args()
     if a.cmd == "make":
         make(a.out_dir)
@@ -200,7 +216,7 @@ def main() -> None:
         a.labels.write_text(json.dumps(labels, indent=1, ensure_ascii=False))
         print(f"{len(labels)} items read, {len(problems)} problems" + "".join(f"\n  {x}" for x in problems))
     else:
-        score(a.labels, a.out_dir)
+        score(a.labels, a.out_dir, a.all_items)
 
 
 if __name__ == "__main__":

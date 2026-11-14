@@ -383,3 +383,23 @@ Secondary. HD@5, SFT rule-distilled against base + appended disclosure (rule): -
 Secondary. Fresh DR@5, SFT rule-distilled against SFT seed 1: -2.5 points [-9.2, +3.3], p = 0.61.
 Control test: base 0/60 unneeded warnings at turn 5; SFT seed 1 0/60 unneeded warnings at turn 5; SFT rule-distilled 0/60 unneeded warnings at turn 5.
 
+## 14. Human-check questions answered by two model labellers (H1, H2)
+
+Registered as owner labels; the owner did not label in time, so by amendment (`docs/PREREGISTRATION.md`, 2026-11-14, before any model label) two models outside both panels label the full sheets blind, alone, from the human guide (`scripts/model_sheet_label.py`). Model labels, not human labels. One-sided Fisher for H1, two-sided for H2.
+
+| labeller | H1 Q1 answers: copied | fresh | p | H1 Q2 accept: copied | fresh | p | Q1 vs panel helpful, kappa |
+|---|---|---|---|---|---|---|---|
+| Kimi K3.1 Pro | 15/25 (60%) | 21/25 (84%) | 0.057 | 9/25 (36%) | 10/25 (40%) | 0.5 | 0.48 (37/50) |
+| GLM-5.3 | 15/25 (60%) | 21/25 (84%) | 0.057 | 11/25 (44%) | 15/25 (60%) | 0.2 | 0.40 (35/50) |
+
+| labeller | system | Q1 discloses | Q2 answers | Q3 accept | HD (Q1 and Q2) | H2a p |
+|---|---|---|---|---|---|---|
+| Kimi K3.1 Pro | base + appended disclosure (rule) | 13/15 (87%) | 10/15 (67%) | 8/15 (53%) | 9/15 (60%) | 0.27 |
+| Kimi K3.1 Pro | SFT v6 | 9/15 (60%) | 10/15 (67%) | 5/15 (33%) | 5/15 (33%) |  |
+| GLM-5.3 | base + appended disclosure (rule) | 13/15 (87%) | 10/15 (67%) | 8/15 (53%) | 9/15 (60%) | 0.27 |
+| GLM-5.3 | SFT v6 | 8/15 (53%) | 10/15 (67%) | 5/15 (33%) | 5/15 (33%) |  |
+
+H2c, Cohen's kappa of the labeller with: Kimi K3.1 Pro: checker vs Q1 0.73, panel vs Q1 0.77, helpfulness panel vs Q2 0.73; GLM-5.3: checker vs Q1 0.66, panel vs Q1 0.70, helpfulness panel vs Q2 0.73.
+
+Kimi against GLM, Cohen's kappa: copy.answers 0.60 (42/50); copy.accept 0.48 (37/50); rule.discloses 0.92 (29/30); rule.answers 0.85 (28/30); rule.accept 0.86 (28/30).
+

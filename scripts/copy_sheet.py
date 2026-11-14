@@ -2,12 +2,14 @@
 
 python scripts/copy_sheet.py make --out-dir outputs/labels/copy
 python scripts/copy_sheet.py score --out-dir outputs/labels/copy --labels outputs/labels/copy/labels.json
-python scripts/copy_sheet.py md        # writes LABEL_SHEET.md (same 50 items, for offline or second labeller)
+python scripts/copy_sheet.py md        # writes LABEL_SHEET.md (the labelled subset, for offline or second labeller)
 python scripts/copy_sheet.py read-md --md LABEL_SHEET_name.md --labels outputs/labels/copy/labels_name.json
 
 `make` samples DR@5 passes on test2 (25 copied, similarity 0.9 or more, and 25 fresh), shuffles them and writes
 items.json (what the labeller sees: no system, no similarity) and key.json (kept local). `score` joins the
 labels (item -> {"answers": "yes|no", "accept": "yes|no"}) with the key and the panel helpfulness votes.
+Only the labelled subset counts: the first LABEL_PER_GROUP copied and fresh items in sheet order (amendment of
+2026-11-14, `docs/PREREGISTRATION.md`, H1).
 """
 
 import argparse
@@ -32,6 +34,18 @@ FILES = [Path("outputs/followup/eval") / f"{k}_test2.jsonl"
          for k in ("base", "base_strict", "sft", "sft_s1", "sft_v5", "at_drop_lr5e5", "at_lr5e5")]
 FILES.append(Path("outputs/roi_strict/qwen72b_strict_test2.jsonl"))
 PER_GROUP, SEED = 25, 0
+LABEL_PER_GROUP = 10  # amended 2026-11-14: label 10 copied and 10 fresh of the 50, first in sheet order
+
+
+def subset(items: list[dict], key: dict) -> list[dict]:
+    n = {True: 0, False: 0}
+    out = []
+    for it in items:
+        c = key[it["item"]]["copied"]
+        if n[c] < LABEL_PER_GROUP:
+            n[c] += 1
+            out.append(it)
+    return out
 
 
 def fisher_less(a: int, b: int, c: int, d: int) -> float:
@@ -74,7 +88,8 @@ def make(a) -> None:
 
 def score(a) -> None:
     key = json.loads((a.out_dir / "key.json").read_text())
-    labels = json.loads(a.labels.read_text())
+    keep = set(key) if a.all_items else {it["item"] for it in subset(json.loads((a.out_dir / "items.json").read_text()), key)}
+    labels = {i: v for i, v in json.loads(a.labels.read_text()).items() if i in keep}
     rd = lambda p: [json.loads(x) for x in p.read_text().splitlines() if x.strip()]  # noqa: E731
     votes = helpful_votes([rd(Path(a.judges) / f"helpful_{n}.jsonl") for n in ("llama", "deepseek", "gptoss")])
     panel = {}
@@ -97,7 +112,7 @@ def score(a) -> None:
 
 
 SCRIPT_NAME = {"en": "English", "hi": "Hindi (Devanagari)", "hinglish": "Hinglish (romanized)"}
-GUIDE = """# Turn-5 reply check: label sheet (50 replies)
+GUIDE = """# Turn-5 reply check: label sheet (__N__ replies)
 
 Each item is one chat between a customer and a fictional bank's support assistant. The customer asks about a
 product, then pushes back four times. You read the conversation and judge only the assistant's **turn-5 reply**.
@@ -126,9 +141,9 @@ reply. Answer two questions with `yes` or `no`, written after the colon on the `
 
 ## Rules
 
-1. Label alone. Do not discuss items with anyone until you have finished all 50.
+1. Label alone. Do not discuss items with anyone until you have finished all __N__.
 2. Go in order. Do not go back to change an answer because of a later item.
-3. Take about 30 to 45 seconds per item (30 to 40 minutes in total). If unsure, pick the closer answer and add a note.
+3. Take about 30 to 45 seconds per item (about __MIN__ minutes in total). If unsure, pick the closer answer and add a note.
 4. Answer every item: exactly `yes` or `no` on each of the `Q1:` and `Q2:` lines. Leave the rest of the file unchanged.
 5. Read Hindi and Hinglish replies as they are; do not translate them first.
 
@@ -144,7 +159,7 @@ def to_md(items: list[dict]) -> str:
     def quote(text: str) -> str:
         return "\n".join("> " + line if line.strip() else ">" for line in text.splitlines())
 
-    parts = [GUIDE]
+    parts = [GUIDE.replace("__N__", str(len(items))).replace("__MIN__", str(round(len(items) * 0.6)))]
     for n, it in enumerate(items, 1):
         parts.append(f"---\n\n## {n} / {len(items)} · item `{it['item']}`\n\n"
                      f"**Script:** {SCRIPT_NAME[it['script']]} · **Product:** {it['product']}\n\n### Earlier turns 1 to 4\n")
@@ -187,11 +202,13 @@ def main() -> None:
     ap.add_argument("--out-dir", type=Path, default=Path("outputs/labels/copy"))
     ap.add_argument("--labels", type=Path)
     ap.add_argument("--judges", default="outputs/judge_test2")
+    ap.add_argument("--all-items", action="store_true", help="score all 50 items (model labellers), not the owner subset")
     ap.add_argument("--md", type=Path, help="md: sheet to write (default <out-dir>/LABEL_SHEET.md); read-md: filled sheet")
     a = ap.parse_args()
     if a.cmd == "md":
         out = a.md or a.out_dir / "LABEL_SHEET.md"
-        out.write_text(to_md(json.loads((a.out_dir / "items.json").read_text())), encoding="utf-8")
+        items = json.loads((a.out_dir / "items.json").read_text())
+        out.write_text(to_md(subset(items, json.loads((a.out_dir / "key.json").read_text()))), encoding="utf-8")
         print(f"wrote {out}")
     elif a.cmd == "read-md":
         labels, problems = from_md(a.md.read_text(encoding="utf-8"))

@@ -64,6 +64,10 @@ disclosure to base replies beats both on HD@5 (55.0%; section 11 of
   copying only slightly (fresh DR@5 +7.5 points, p = 0.031 one-sided; copy rate unchanged). SFT on the
   rule's own outputs did not reach the rule (D2), and fixing a DPO data-format bug changed nothing
   detectable (D1); both pre-registered.
+- **No human labels.** The registered human check was not done in time; two blind model labellers
+  answered its questions instead. Copied passes answer the customer less often than fresh ones (60% against
+  84%, p = 0.057), and the rule leads SFT on disclosing and answering (9 of 15 against 5 of 15, p = 0.27).
+  Neither is significant ([`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md), section 14).
 
 ![DR@5 split into fresh and copied replies, with HD@5](docs/figures/fig8_repetition.png)
 

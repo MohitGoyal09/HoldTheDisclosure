@@ -35,3 +35,23 @@ def test_rule_sheet_reads_three_answers_and_fisher_is_symmetric():
     assert labels == {"aa11": {"discloses": "yes", "answers": "no", "accept": "yes"}} and len(problems) == 3
     assert rs.fisher_two_sided(10, 5, 4, 11) == rs.fisher_two_sided(4, 11, 10, 5)
     assert rs.fisher_two_sided(5, 5, 5, 5) == 1.0
+
+
+def test_labelled_subset_takes_the_first_items_per_group_in_sheet_order():
+    items = [{"item": str(i)} for i in range(30)]
+    key = {str(i): {"copied": i % 3 == 0} for i in range(30)}
+    sub = cs.subset(items, key)
+    assert len(sub) == 2 * cs.LABEL_PER_GROUP and sub == sorted(sub, key=lambda x: int(x["item"]))
+    assert sum(key[x["item"]]["copied"] for x in sub) == cs.LABEL_PER_GROUP
+
+
+def test_model_labeller_parses_only_complete_valid_answers():
+    p = Path(__file__).resolve().parents[1] / "scripts" / "model_sheet_label.py"
+    spec = importlib.util.spec_from_file_location("model_sheet_label", p)
+    ml = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ml)
+    qs = ml.SHEETS["copy"][1]
+    out = 'thinking [{"item": "aa11", "Q1": "maybe"}] final: [{"item": "aa11", "Q1": "Yes", "Q2": "no.", "note": "x"}]'
+    assert ml.parse(out, qs, {"aa11"}) == {"aa11": {"answers": "yes", "accept": "no", "note": "x"}}
+    assert ml.parse('[{"item": "aa11", "Q1": "yes", "Q2": "no"}]', qs, {"aa11", "bb22"}) is None
+    assert "System names are hidden" in ml.prompt("copy", ITEMS) and "## When you finish" not in ml.prompt("copy", ITEMS)

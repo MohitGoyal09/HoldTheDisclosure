@@ -234,3 +234,39 @@ CORRECTION 2026-11-14: the final-study header says registration was at 02:15 IST
   meaning-based panel, and of Q2 with the helpfulness panel.
 - Stated in advance: a labeller can recognise the rule's appended sentence (it repeats the sheet wording), so the
   sheet is not fully blind for rule items; and the rule checker passes every rule reply by construction.
+
+### Amendment to H1 and H2: smaller labelled subsets (2026-11-14, owner: 1 of 50 H1 items labelled, 0 H2)
+
+- Reason: labelling time. The owner judged 80 items (50 + 30) too many to label carefully before the deadline.
+- Rule, fixed before any further label and without looking at any reply: H1 labels the first 10 copied and the first
+  10 fresh items in the existing shuffled sheet order (20 of 50, positions 1 to 24; the one item already labelled is
+  position 1 and is kept). H2 labels the first 3 items per system and script in sheet order (18 of 30: 9 rule, 9 SFT
+  v6). Items, order, questions and hints are unchanged; `scripts/copy_sheet.py` and `scripts/rule_sheet.py` count
+  only these items (`subset`), and both Markdown sheets now hold only them.
+- Both sheets are labelled on one page (sheet 1 then sheet 2). Hypotheses, tests and alpha are unchanged. Power falls:
+  H1a now compares 10 against 10 and H2a 9 against 9, so only very large differences are detectable, and both are
+  reported as descriptive with their counts.
+
+### Amendment to H1 and H2: model labellers in place of the owner (2026-11-14, owner: 1 of 20 H1 items labelled, 0 H2)
+
+- Reason: the owner could not label in the time left. The human check is not done; it stays a limitation.
+- Labellers: two models outside both panels, Kimi K3.1 Pro (`opencode-go/kimi-k3.1-pro`) and GLM-5.3
+  (`opencode-go/glm-5.3`) through the OpenCode CLI, the pair that labelled the earlier blind sheet. Each labels alone,
+  from the same guide, items, order, questions and hints as the human sheets (`scripts/model_sheet_label.py`), in
+  batches of 5, blind to system and similarity. A batch is re-asked only if the answer is not valid JSON with yes/no
+  for every question; labels are never re-asked for content.
+- Items: all 50 H1 and all 30 H2 items, the sheets as first registered (the 20 and 18 item subsets existed only to save
+  human time). The owner's one label is not used.
+- Tests, alpha and directions unchanged, run on each model's labels separately. Added: agreement and Cohen's kappa
+  between the two models per question. These are model labels, not human labels, and are reported as such.
+
+- 2026-11-14, 20:43 IST, after the owner's one label and before any Kimi, GLM or agent label for this sheet exists: a
+  third model pass labelled the 20 items of the current H1 sheet by hand (same guide, items, order, questions and
+  hints; `outputs/labels/copy/LABEL_SHEET_opencode.md`, read back with `scripts/copy_sheet.py read-md` into
+  `outputs/labels/copy/labels_opencode.json`). Model: OpenCode agent on MiniMax M3.1 Flash. Blindness: the sheet key
+  (`outputs/labels/copy/key.json`) was not opened, so system and copied or fresh status stayed hidden. Disclosure:
+  the owner's label for item 1 (`labels_mohit.json`) was seen while orienting, before the pass; item 1 was labelled
+  independently and disagrees with the owner.
+- Scope and status: this pass covers only the 20-item subset sheet, not the 50 items as first registered, and it does
+  not use `scripts/model_sheet_label.py`. It is descriptive only. H1a to H1c stay on the owner's labels and on the
+  pre-registered Kimi and GLM passes. These are model labels, not human labels, and are reported as such.

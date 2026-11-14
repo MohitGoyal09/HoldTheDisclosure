@@ -655,6 +655,47 @@ def section_final(sheet, sys_by_split, votes, dpo_chat: Path, rule_sft: Path, ba
     return out + [""]
 
 
+def section_h(labels: Path) -> list[str]:
+    """H1 and H2 with two blind model labellers (amendment of 2026-11-14), from the score scripts' result files."""
+    names = (("kimi", "Kimi K3.1 Pro"), ("glm", "GLM-5.3"))
+    h1 = {n: labels / "copy" / f"result_{n}.json" for n, _ in names}
+    h2 = {n: labels / "rule" / f"result_labels_{n}.json" for n, _ in names}
+    agree = labels / "model_agreement.json"
+    if not all(f.exists() for f in [*h1.values(), *h2.values(), agree]):
+        return []
+    pct = lambda a, b: f"{a}/{b} ({100 * a / b:.0f}%)"  # noqa: E731
+    out = ["## 14. Human-check questions answered by two model labellers (H1, H2)", "",
+           "Registered as owner labels; the owner did not label in time, so by amendment (`docs/PREREGISTRATION.md`, "
+           "2026-11-14, before any model label) two models outside both panels label the full sheets blind, alone, from "
+           "the human guide (`scripts/model_sheet_label.py`). Model labels, not human labels. One-sided Fisher for H1, "
+           "two-sided for H2.", "",
+           "| labeller | H1 Q1 answers: copied | fresh | p | H1 Q2 accept: copied | fresh | p | Q1 vs panel helpful, kappa |",
+           "|---|---|---|---|---|---|---|---|"]
+    for n, name in names:
+        d = json.loads(h1[n].read_text())
+        a, c, k = d["answers"], d["accept"], d["panel_vs_human_answers"]
+        out.append(f"| {name} | {pct(a['copied_yes'], a['copied_n'])} | {pct(a['fresh_yes'], a['fresh_n'])} | "
+                   f"{a['fisher_p_one_sided']:.2g} | {pct(c['copied_yes'], c['copied_n'])} | {pct(c['fresh_yes'], c['fresh_n'])} | "
+                   f"{c['fisher_p_one_sided']:.2g} | {k['kappa']:.2f} ({k['agree']}/{k['n']}) |")
+    out += ["", "| labeller | system | Q1 discloses | Q2 answers | Q3 accept | HD (Q1 and Q2) | H2a p |", "|---|---|---|---|---|---|---|"]
+    for n, name in names:
+        d = json.loads(h2[n].read_text())
+        for sname, label in (("rule", "base + appended disclosure (rule)"), ("sft", "SFT v6")):
+            r = d["systems"][sname]
+            p = f"{d['H2a_human_hd_rule_vs_sft_fisher_two_sided']:.2g}" if sname == "rule" else ""
+            out.append(f"| {name} | {label} | {pct(r['discloses'], r['n'])} | {pct(r['answers'], r['n'])} | "
+                       f"{pct(r['accept'], r['n'])} | {pct(r['human_hd'], r['n'])} | {p} |")
+    out += ["", "H2c, Cohen's kappa of the labeller with: " + "; ".join(
+        f"{name}: checker vs Q1 {json.loads(h2[n].read_text())['agreement']['checker_vs_Q1']['kappa']:.2f}, "
+        f"panel vs Q1 {json.loads(h2[n].read_text())['agreement']['panel_vs_Q1']['kappa']:.2f}, "
+        f"helpfulness panel vs Q2 {json.loads(h2[n].read_text())['agreement']['helpful_vs_Q2']['kappa']:.2f}"
+        for n, name in names) + ".", ""]
+    g = json.loads(agree.read_text())
+    out.append("Kimi against GLM, Cohen's kappa: " + "; ".join(
+        f"{k} {v['kappa']:.2f} ({v['agree']}/{v['n']})" for k, v in g.items()) + ".")
+    return out + [""]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--old-checker", type=Path, default=Path("outputs/checker_v0"),
@@ -702,8 +743,6 @@ def main() -> None:
         if len(rule) == 3:
             lines += section_rule(sheet, sys_by_split["test2"], helpful_votes([x + y for x, y in zip(t2, rule)]),
                                   a.eval / "base_rule_test2.jsonl")
-            lines += section_final(sheet, sys_by_split, helpful_votes([x + y for x, y in zip(t2, rule)]), a.dpo_chat,
-                                   a.rule_sft, a.base_dir)
             disc = [rd(a.disc_judges / f"panel_{n}.jsonl") for n in ("llama", "deepseek", "gptoss")
                     if (a.disc_judges / f"panel_{n}.jsonl").exists()]
             if len(disc) == 3:
@@ -712,6 +751,9 @@ def main() -> None:
                                                ("DPO drop+warn (chat format)", a.dpo_chat / "aligntune_dpo_drop_lr5e5_chat_test2.jsonl"),
                                                ("SFT rule-distilled", a.rule_sft / "sft_rule_s1_test2.jsonl")) if f.exists()]
                 lines += section_j1(sheet, j_rows, [x + y for x, y in zip(t2, rule)], disc)
+            lines += section_final(sheet, sys_by_split, helpful_votes([x + y for x, y in zip(t2, rule)]), a.dpo_chat,
+                                   a.rule_sft, a.base_dir)
+    lines += section_h(Path("outputs/labels"))
     a.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {a.out}")
 

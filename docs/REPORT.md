@@ -797,6 +797,27 @@ small share of each target, so SFT mostly learns base's style and keeps the disc
 unneeded warnings on control products (0 of 60). The rule works at serving time; plain SFT on its outputs
 does not carry it over.
 
+### Human-check questions with model labellers (H1 and H2, pre-registered, amended)
+
+H1 (copied against fresh passes, 50 replies) and H2 (rule against SFT v6, 30 replies) were registered as owner
+labels. The owner did not label in time. By an amendment committed before any model label existed
+(`docs/PREREGISTRATION.md`), two models outside both panels, Kimi K3.1 Pro and GLM-5.3 (whose family generated the
+training data), labelled the full sheets alone, blind to system and similarity, from the human guide
+(`scripts/model_sheet_label.py`; `docs/RESULTS_ROBUSTNESS.md`, section 14). These are model labels, not human labels.
+
+- **H1a (primary): not supported at alpha 0.05.** Both labellers say a copied pass answers the last message in 15 of
+  25 cases (60%), against 21 of 25 (84%) for fresh passes (one-sided Fisher p = 0.057). Same direction as the
+  pre-registered panel result (34.5% against 66.4%).
+- **H1b: not supported.** Acceptable from a careful agent: copied 36% against fresh 40% (Kimi, p = 0.5), 44% against
+  60% (GLM, p = 0.2).
+- **H1c.** Agreement of Q1 with the helpfulness panel: Cohen's kappa 0.48 (Kimi) and 0.40 (GLM).
+- **H2a: not significant.** Disclosing and answering (human-style HD): rule 9 of 15, SFT v6 5 of 15, for both
+  labellers (two-sided Fisher p = 0.27). With 15 per system only a large difference is detectable.
+- **H2b, H2c.** Acceptable: rule 8 of 15, SFT v6 5 of 15. Q1 against the checker: kappa 0.73 and 0.66; against the
+  meaning-based panel 0.77 and 0.70; Q2 against the helpfulness panel 0.73 for both.
+- **Labeller agreement.** Kimi against GLM: kappa 0.92, 0.85 and 0.86 on the three H2 questions, 0.60 and 0.48 on
+  the two H1 questions.
+
 ### Other checks
 
 **Scenario-level tests.** With whole scenarios as the unit, every trained Tiny Aya system still
@@ -857,7 +878,7 @@ and DPO intervals are wide.
   replies), and the blind sheet was labelled by two other open-weight models, not people. All of
   these can share blind spots with the judges and with each other. After majority voting the panel labels
   only PASS or DROP, so it validates disclosure judgement, not over-correction detection. The blind label sheet is published for later human
-  validation.
+  validation. The pre-registered human check (H1, H2) was not done; two model labellers answered its questions instead.
 - The SFT recipe was picked after looking at test results, so the held-out split (unseen
   products and tactics) is the confirmatory result for SFT. The DPO learning rate (5e-5) and the
   pair-mix question were chosen after seeing test and held-out, so for DPO only test2 is clean.
