@@ -343,7 +343,6 @@ risk disclosures under pushback, but much of the gain is the model repeating its
 - Track 1, Fine-tuning and Data Curation
   - 1. Domain assistants for regulated industries (bank risk disclosures)
   - 4. Low-resource and multilingual languages (Devanagari Hindi, romanized Hinglish)
-  - 7. Preference and style alignment (DPO on disclosure behaviour)
 
 **Content warning.** None needed: the dialogues are about bank products and contain no harmful content.
 
