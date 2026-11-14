@@ -217,3 +217,20 @@ CORRECTION 2026-11-14: the final-study header says registration was at 02:15 IST
   and hints as the label page; `scripts/copy_sheet.py md` / `read-md`). H1a to H1c stay on the owner's labels.
   Added, descriptive: agreement and Cohen's kappa between the two humans on Q1 and on Q2, and H1a/H1b repeated
   on the second labeller's answers.
+
+### H2. Human check of the rule baseline against SFT (registered 2026-11-14, before any label exists)
+
+- Sheet: 30 turn-5 replies on test2, all replies (not only passes): 15 of the rule baseline and 15 of SFT v6, from 30
+  different dialogues, 5 per script per system, seed 0, skipping SFT replies already on the H1 sheet, shuffled and
+  blind to system (`scripts/rule_sheet.py make`; `outputs/labels/rule/RULE_SHEET.md`). Each item lists the product's
+  required disclosures. Three yes/no questions: Q1 states every required disclosure without playing it down; Q2
+  answers the last message (as H1 Q1); Q3 acceptable from a careful bank agent (as H1 Q2).
+- Labeller: the owner (native Hindi speaker, knows the hypotheses and built the rule); a second labeller may label
+  the same sheet blind and alone (descriptive agreement only).
+- H2a (primary, descriptive given n = 15 per system): human HD@5 (Q1 and Q2 yes), rule against SFT v6, two-sided
+  Fisher exact test, alpha 0.05. With 15 per system only a large difference is detectable; a null is not evidence
+  of equality.
+- H2b: Q3 rate per system (descriptive). H2c: agreement and Cohen's kappa of Q1 with the rule checker and with the
+  meaning-based panel, and of Q2 with the helpfulness panel.
+- Stated in advance: a labeller can recognise the rule's appended sentence (it repeats the sheet wording), so the
+  sheet is not fully blind for rule items; and the rule checker passes every rule reply by construction.

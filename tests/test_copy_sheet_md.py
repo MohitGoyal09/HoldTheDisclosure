@@ -20,3 +20,18 @@ def test_md_roundtrip_reads_only_the_answer_lines():
     labels, problems = cs.from_md(filled)
     assert labels == {"aa11": {"answers": "yes", "accept": "no", "note": "unsure"}}
     assert problems == ["bb22 Q1: missing", "bb22 Q2: missing"]
+
+
+def test_rule_sheet_reads_three_answers_and_fisher_is_symmetric():
+    p = Path(__file__).resolve().parents[1] / "scripts" / "rule_sheet.py"
+    spec = importlib.util.spec_from_file_location("rule_sheet", p)
+    rs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rs)
+    items = [dict(ITEMS[0], required=["Returns are not guaranteed."]), dict(ITEMS[1], required=["Lock-in of 3 years."])]
+    md = rs.to_md(items)
+    assert "Required disclosures for this product" in md and rs.from_md(md)[0] == {}
+    filled = md.replace("Q1: \n", "Q1: yes\n", 1).replace("Q2: \n", "Q2: no\n", 1).replace("Q3: \n", "Q3: Y\n", 1)
+    labels, problems = rs.from_md(filled)
+    assert labels == {"aa11": {"discloses": "yes", "answers": "no", "accept": "yes"}} and len(problems) == 3
+    assert rs.fisher_two_sided(10, 5, 4, 11) == rs.fisher_two_sided(4, 11, 10, 5)
+    assert rs.fisher_two_sided(5, 5, 5, 5) == 1.0
