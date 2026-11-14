@@ -17,6 +17,9 @@ English, Devanagari Hindi and romanized Hinglish
 [Pre-registration](docs/PREREGISTRATION.md) · [Article](docs/HF_ARTICLE.md) · [All runs](docs/RUNS.md) ·
 [Figures](docs/figures/README.md)
 
+> This README is our hackathon write-up. Every required checklist item is answered in
+> [Write-up checklist](#write-up-checklist).
+
 ---
 
 ## Contents
@@ -31,6 +34,7 @@ English, Devanagari Hindi and romanized Hinglish
 - [Repository layout](#repository-layout)
 - [Artifacts](#artifacts)
 - [What this does not show](#what-this-does-not-show)
+- [Write-up checklist](#write-up-checklist)
 - [Built with](#built-with)
 - [Licence](#licence) · [Citation](#citation)
 
@@ -326,6 +330,207 @@ in each `kernel-metadata.json`. Before pushing a notebook, run it locally agains
   The repetition finding was found after the main study and then tested with a pre-registered analysis. The rule
   checker's patterns were widened after reading base outputs on the first test split; test2 came later, and every
   main system was also rescored with the untuned checker.
+
+## Write-up checklist
+
+This README is our hackathon write-up. Each required item of the Lexsi write-up checklist is answered below, in the
+checklist's order.
+
+**Title and one-line claim.** Hold the Disclosure: fine-tuning makes a small multilingual bank chatbot keep required
+risk disclosures under pushback, but much of the gain is the model repeating itself, and a one-line rule does better.
+
+**Tracks and problem statements.**
+- Track 1, Fine-tuning and Data Curation
+  - 1. Domain assistants for regulated industries (bank risk disclosures)
+  - 4. Low-resource and multilingual languages (Devanagari Hindi, romanized Hinglish)
+  - 7. Preference and style alignment (DPO on disclosure behaviour)
+
+**Content warning.** None needed: the dialogues are about bank products and contain no harmful content.
+
+<details>
+<summary><b>Abstract</b> (under 500 words; also in <a href="docs/ABSTRACT.md">docs/ABSTRACT.md</a>)</summary>
+
+A bank's support chatbot must state required risk disclosures (lock-in, exit load, market risk,
+interest charges) even when the customer pushes back. We test whether small multilingual models
+keep them over five turns of scripted pushback in English, Devanagari Hindi and romanized
+Hinglish, and whether fine-tuning fixes the failure. The product facts are always in the system
+prompt; our main prompt does not tell the model to state them, so we measure uninstructed
+retention, with an instructed ("strict") baseline. DR@5 is the share of dialogues whose turn-5
+reply states every required disclosure, scored by a rule checker.
+
+Uninstructed, the failure is large. Tiny Aya Fire (3.35B) states the disclosures at turn 1 in
+every English and Hindi test dialogue but keeps them at turn 5 in 0% and 15% (13.3% pooled).
+Llama-3.2-3B keeps 0% and Qwen2.5-72B 3.3%. Instruction helps unevenly: the strict prompt lifts
+Qwen2.5-72B to 41.7% on test but not on held-out products (28.3%), and lifts Tiny Aya on new
+pushback lines (40.0%) but not on the first test split (11.7%).
+
+LoRA supervised fine-tuning and DPO (through AlignTune) on gated synthetic replies raise DR@5. On 120 new, native-reviewed pushback dialogues that no system was tuned on, all five trained systems beat base (32.5 to 52.5% against 16.7%; all Holm p < 0.01,
+pre-registered). The gain holds over training runs, a second model family, held-out products and a
+shuffled turn order.
+
+A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
+reply of the same model (instructed
+Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
+costs. A three-family LLM panel rates copied passes helpful far less often than
+fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
+that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
+4.2%, p = 0.0002) and is not detectably different from instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
+DR@5 gain is repetition that does not answer the customer. A post hoc rule appending the
+missing disclosure sentence to every base reply does better still (HD@5 55.0%; 47.5% by meaning-based judges). SFT also copies on control products (51 of
+60 dialogues, base 13).
+
+Other costs: no trained system adds a warning to products that need none; SFT answers control
+questions less often than base (not significant after correction); one
+DPO mix often answers Hinglish customers in Devanagari.
+
+Lessons: a per-turn compliance metric must also check that the
+reply answers the customer and be compared with a simple rule; varying the training replies
+barely changed copying, fixing an AlignTune format bug left DPO unchanged, and SFT on the rule's
+outputs did not reach the rule (all pre-registered). Limitations:
+one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
+helpfulness from model labels, and a post hoc repetition finding, then tested as
+pre-registered. Code, data and adapters are released.
+
+</details>
+
+**Headline before and after.** On 120 new pushback dialogues (test2), Tiny Aya Fire keeps every required disclosure
+at turn 5 in 16.7% of dialogues before and 52.5% after LoRA SFT. Keeping it and helping the customer (HD@5) goes from
+4.2% to 27.5%.
+
+**Base model and method in one line.** Cohere Labs Tiny Aya Fire (3.35B, 4-bit NF4) with LoRA SFT (TRL) and LoRA DPO
+(AlignTune) on gated synthetic five-turn replies in three scripts.
+
+### Problem statement and approach
+
+**Why this problem.** Bank and investment products in India come with facts the customer must hear: lock-in periods,
+market risk, exit loads, interest on unpaid balances. A chat assistant that drops them when a customer is impatient is
+a mis-selling risk, and code-mixed Hinglish is how many customers actually type. Single-turn safety tests miss this,
+because the pressure builds over several turns.
+
+**Approach.** Build a fictional bank with real-style rules, script five-turn pushback in three scripts, measure
+whether the turn-5 reply still discloses, fine-tune to fix it, and test against hypotheses registered in advance.
+Details in [How the study works](#how-the-study-works).
+
+### Hackathon repos used and how they connect
+
+| Repo | Role |
+|---|---|
+| [CuratorKIT](https://github.com/Lexsi-Labs/CuratorKIT) | Generates candidate replies for every turn (chosen, drop, lecture, warn) and gates them with the rule checker, a length gate and its reward gate |
+| [AlignTune](https://github.com/Lexsi-Labs/aligntune) | Trains every DPO adapter (TRL backend) on the pairs cut from CuratorKIT's output |
+| [AuditKIT](https://github.com/Lexsi-Labs/AuditKIT) | Model backends and paired comparisons on the final transcripts |
+
+The pipeline runs CuratorKIT (data) into AlignTune (DPO) and TRL (SFT), then replays every adapter over five turns
+and compares systems with AuditKIT and our scenario-level tests. Issues we found in the tools (an AlignTune chat-format
+flattening, an AuditKIT bootstrap that does not center under the null) are in [`docs/UPSTREAM.md`](docs/UPSTREAM.md).
+
+### Models and licences
+
+| Model | Use | Licence |
+|---|---|---|
+| [CohereLabs/tiny-aya-fire](https://huggingface.co/CohereLabs/tiny-aya-fire) (3.35B) | Model under study, trained with LoRA; loaded in 4-bit NF4 (bitsandbytes), greedy decoding | CC BY-NC 4.0 (gated) |
+| meta-llama/Llama-3.2-3B-Instruct | Second model family for the SFT recipe | Llama 3.2 Community Licence |
+| Qwen/Qwen2.5-72B-Instruct | Untrained large-model reference (API) | Qwen licence |
+| Llama-3.3-70B-Instruct, DeepSeek-V3-0324, gpt-oss-120b | Helpfulness and meaning-based disclosure panels (API, evaluation only) | Llama 3.3 Community Licence, MIT, Apache 2.0 |
+| Qwen3-235B-A22B-Instruct-2507, Gemma-3-27B | Judge selection and ablations (API, evaluation only) | Apache 2.0, Gemma Terms of Use |
+| GLM-4.7-Flash | Training-reply generator through CuratorKIT (API) | see its model card |
+| Kimi K3.1 Pro, GLM-5.3 | Blind model labellers (API, evaluation only) | see their providers' terms |
+
+Our adapters inherit the base model licences.
+
+### Datasets and licences
+
+**Sources.** No existing dataset is used. Everything is synthetic and built for this project: a product sheet for a
+fictional bank (ten products, required disclosures and key facts per script), hand-written pushback seeds per tactic
+and script (Hindi and Hinglish reviewed by a native speaker), and assistant replies generated by GLM-4.7-Flash and kept
+only if they pass the gates. Released under CC BY-NC 4.0 in the
+[HF dataset](https://huggingface.co/datasets/Rockerleo/hold-the-disclosure).
+
+**Train and test splits, leak check.**
+
+| Split | Size | What is new |
+|---|---|---|
+| Train | 120 disclosure and 50 control dialogues: 858 SFT rows and 1,496 DPO pairs, plus 102 and 174 validation rows | |
+| Test | 60 dialogues (20 per script) | unseen pushback lines on the training products |
+| Held-out | 60 dialogues | two unseen products (ULIP, personal loan) and unseen tactics |
+| Control test | 60 dialogues | products that need no disclosure (catches over-warning) |
+| test2 (confirmatory) | 120 dialogues (40 per script) | 16 new pushback lines, written after the main study, disjoint from all earlier lines |
+
+Leak checks: pushback lines carry a split label and are drawn only within their split (unit-tested); test turn-1
+openings are disjoint from training openings; validation rows are cut by whole dialogue before pairs are cut, so no
+dialogue is in both; no trained system was tuned on test2.
+
+### Metrics and why
+
+| Metric | Better | Why |
+|---|---|---|
+| DR@k: turn-k reply states every required disclosure (rule checker) | higher | the compliance requirement itself |
+| HD@5: DR@5 and the helpfulness panel calls the reply helpful | higher | a disclosure that ignores the customer is not a good reply |
+| Fresh DR@5: DR@5 with a reply below 0.9 similarity to the model's earlier replies | higher | separates holding the disclosure from copying an old reply |
+| Copied-pass share | lower | how much of DR@5 is repetition |
+| Panel DR@5 and panel HD@5: meaning-based disclosure panel instead of the checker | higher | guards against gaming the keyword checker |
+| In-script DR@5: DR@5 with the reply in the customer's script | higher | a Hindi or Hinglish customer should get an answer in their script |
+| Unneeded-warning rate on control products | lower | catches a model that warns about everything |
+| Helpful rate on control products | higher | catches lost general helpfulness |
+
+### Method and experiments
+
+**Training setup and hyperparameters.** LoRA rank 16, alpha 32, on a 4-bit NF4 base with gradient checkpointing, one
+epoch, batch 1 with gradient accumulation 8, on one Kaggle T4 (15 GB). SFT: learning rate 1e-4, TRL 0.29.1,
+transformers 5.20.2, PEFT 0.21.2, three runs (two with unseeded LoRA initialisation, one with seed 1). DPO through
+AlignTune: beta 0.1, learning rate 5e-6 or 5e-5 (2x2 grid with two pair mixes), seeds 0, 1 and 2 at 5e-5. Evaluation
+uses greedy decoding and the plain system prompt for every trained system. Every run, with its kernel and
+configuration, is in [`docs/RUNS.md`](docs/RUNS.md); the notebooks are in `kaggle/`.
+
+**Experiments.** The main study (SFT, DPO grid, second model family, held-out products), then pre-registered
+follow-ups: test2 confirmation, HD@5 (R1), varied training replies (R2), corrected DPO format (D1), rule distillation
+(D2), meaning-based disclosure panel (J1), and the human-check questions answered by model labellers (H1, H2).
+
+### Results
+
+Same model before and after, plus the instructed 72B model and the rule baseline: see [Results](#results). Full
+tables: [`docs/REPORT.md`](docs/REPORT.md).
+
+### Limitations
+
+See [What this does not show](#what-this-does-not-show) and the report's Limitations section.
+
+### With more credits
+
+| Planned work | Expected effect (a forecast, not a result) |
+|---|---|
+| Move the rule into the weights properly: weight the loss on disclosure tokens, or DPO with the rule's reply as chosen and base's reply as rejected | HD@5 well above plain SFT (27.5%), towards the rule (55.0%), without a serving-time checker |
+| Add copied replies as a rejected type for DPO and make HD@5 the training target | copied-pass share well below the current 37 to 40% of passes, with DR@5 held |
+| An adaptive LLM customer that argues back for up to ten turns | lower DR@5 for every system; a harder, more realistic test |
+| A larger confirmatory split (at least 100 independent scenarios) and more held-out products | intervals roughly half as wide, so 10-point differences become detectable |
+| Two or more native-speaker labellers on a larger blind sheet | human agreement figures to replace the model labels |
+
+### Artifacts
+
+- HF models collection: [15 LoRA adapters](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-adapters-6af5bec87ee4a0a0e854c692)
+- HF datasets collection: [data, transcripts, judge and label logs](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-data-and-logs-6af5becc1eead73a3df34388)
+- HF Space: [transcript replay](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay)
+- GitHub repo: this repository, with every Kaggle notebook in `kaggle/`
+
+### Documentation and reproduction
+
+Repo layout: [Repository layout](#repository-layout). Run instructions: [Quick start](#quick-start) and
+[Reproduce the study](#reproduce-the-study). One-command check of the headline numbers: `scripts/verify.sh`, also run
+by CI on every push.
+
+### Declaration of work done outside the hackathon
+
+None. All code, data, training and analysis were done during the hackathon (first commit 2026-11-04). We used the
+public base models, the Lexsi tools as released and public libraries; no earlier work of ours is included.
+
+### Teammates
+
+- **Mohit Goyal** (GitHub [MohitGoyal09](https://github.com/MohitGoyal09), Hugging Face
+  [Rockerleo](https://huggingface.co/Rockerleo)): design, code, data, training, evaluation, analysis and writing.
+- **Ananya Bhattacharya**: GPU training and evaluation runs on Kaggle (the DPO seeds, the 2x2 evaluation, the test2
+  and R2 evaluations).
+
+**Acknowledgements.** Lexsi Labs for the hackathon and its tools, Cohere Labs for Tiny Aya, and Hugging Face for the
+Hub and inference providers.
 
 ## Built with
 
