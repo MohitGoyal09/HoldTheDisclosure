@@ -23,9 +23,9 @@ from htd.sheet import load_sheet  # noqa: E402
 from render_robustness import system_votes  # noqa: E402
 from rule_baseline import rule_transcript  # noqa: E402
 
-# (DR@5, HD@5) out of 120, as reported in docs/REPORT.md and docs/RESULTS_ROBUSTNESS.md (sections 9 and 11).
+# (DR@5, HD@5) out of 120, as reported in docs/REPORT.md and docs/RESULTS_ROBUSTNESS.md (sections 9 to 13).
 EXPECTED = {"base": (20, 5), "base_strict": (48, 12), "sft": (63, 33), "dpo": (62, 20), "qwen_strict": (42, 37),
-            "rule": (120, 66)}
+            "rule": (120, 66), "sft_varied": (68, 30), "sft_rule": (37, 20), "dpo_chat": (62, 22)}
 
 
 def rule_counts(data_dir: Path) -> tuple[int, int]:

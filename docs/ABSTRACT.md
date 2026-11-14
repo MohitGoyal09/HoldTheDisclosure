@@ -19,15 +19,15 @@ pre-registered). The gain holds over training runs, a second model family, held-
 shuffled turn order.
 
 A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
-reply of the same model (29% of SFT dialogues on the new lines pass with a verbatim copy;
-instructed Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
+reply of the same model (instructed
+Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
 costs. A three-family LLM panel rates copied passes helpful far less often than
 fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
 that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
 4.2%, p = 0.0002) and is not detectably different from instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
 DR@5 gain is repetition that does not answer the customer. A post hoc rule appending the
 missing disclosure sentence to every base reply does better still (HD@5 55.0%; 47.5% by meaning-based judges). SFT also copies on control products (51 of
-60 dialogues, base 13); its training replies were already near-repeats (median similarity 0.86).
+60 dialogues, base 13).
 
 Other costs: no trained system adds a warning to products that need none; SFT answers control
 questions less often than base (not significant after correction); one
@@ -35,7 +35,8 @@ DPO mix often answers Hinglish customers in Devanagari.
 
 Lessons: a per-turn compliance metric must also check that the
 reply answers the customer and be compared with a simple rule; varying the training replies
-reduced copying only slightly (pre-registered). Limitations:
+barely changed copying, fixing an AlignTune format bug left DPO unchanged, and SFT on the rule's
+outputs did not reach the rule (all pre-registered). Limitations:
 one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
 helpfulness from model labels, and a post hoc repetition finding, then tested as
 pre-registered. Code, data and adapters are released.

@@ -356,7 +356,30 @@ Registered 2026-11-14 before any of these labels existed (`docs/PREREGISTRATION.
 | Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 119/120 | 1 | 30.0% |
 | base + appended disclosure (rule) | 100.0% | 69.2% | 83/120 | 6 | 47.5% |
 | SFT varied (R2) | 56.7% | 62.5% | 113/120 | 2 | 30.0% |
+| DPO drop+warn (chat format) | 51.7% | 52.5% | 105/120 | 3 | 17.5% |
+| SFT rule-distilled | 30.8% | 34.2% | 106/120 | 5 | 15.0% |
 
 J1a (primary). Panel HD@5, rule baseline against SFT v6: +15.8 points [+4.2, +27.5], scenario p = 0.015.
-J1c. Fleiss' kappa, helpfulness panel on all test2 rows: 0.449 (1200 replies); disclosure panel on the rows above: 0.649 (1200 replies).
+J1c. Fleiss' kappa, helpfulness panel on all test2 rows: 0.456 (1440 replies); disclosure panel on the rows above: 0.633 (1440 replies).
+
+## 13. Corrected DPO format (D1) and rule distillation (D2), pre-registered
+
+Registered 2026-11-14 before either adapter was trained (`docs/PREREGISTRATION.md`, final study). test2, scenario-level sign-flip tests; D2 is one-sided (half the two-sided p when the difference is positive); the two primaries are Holm-corrected together. HD@5 uses the checker and the helpfulness panel (model labels).
+
+| system | DR@5 | pass, similarity >= 0.9 | fresh DR@5 | HD@5 |
+|---|---|---|---|---|
+| base | 16.7% | 6.7% | 10.0% | 4.2% |
+| DPO drop+warn (flattened format) | 51.7% | 40.0% | 11.7% | 16.7% |
+| SFT seed 1 | 47.5% | 37.5% | 10.0% | 21.7% |
+| DPO drop+warn (chat format) | 51.7% | 36.7% | 15.0% | 18.3% |
+| SFT rule-distilled | 30.8% | 23.3% | 7.5% | 16.7% |
+| base + appended disclosure (rule) | 100.0% | 28.3% | 71.7% | 55.0% |
+
+D1 (primary). HD@5, DPO drop+warn (chat format) against DPO drop+warn (flattened format): +1.7 points [-6.7, +10.0], p = 0.84, Holm p = 1.
+D2 (primary). HD@5, SFT rule-distilled against SFT seed 1: -5.0 points [-13.3, +3.3], one-sided p = 0.84, Holm p = 1.
+Secondary. HD@5, DPO drop+warn (chat format) against base: +14.2 points [+6.7, +21.7], p = 0.00095.
+Secondary. HD@5, SFT rule-distilled against base: +12.5 points [+5.0, +20.8], p = 0.0044.
+Secondary. HD@5, SFT rule-distilled against base + appended disclosure (rule): -38.3 points [-49.2, -27.5], p = 5e-05.
+Secondary. Fresh DR@5, SFT rule-distilled against SFT seed 1: -2.5 points [-9.2, +3.3], p = 0.61.
+Control test: base 0/60 unneeded warnings at turn 5; SFT seed 1 0/60 unneeded warnings at turn 5; SFT rule-distilled 0/60 unneeded warnings at turn 5.
 

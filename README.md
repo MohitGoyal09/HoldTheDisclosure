@@ -22,7 +22,7 @@ Lexsi AI Safety Hackathon 2026, Track 1 (fine-tuning). English, Devanagari Hindi
 4. Check that the tests were fixed in advance: [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md), with dated
    amendments.
 5. Re-check the headline numbers yourself in one command (no GPU, no API key): `scripts/verify.sh`. It runs the
-   tests, downloads the published transcripts and panel labels, and recomputes DR@5 and HD@5 for six systems.
+   tests, downloads the published transcripts and panel labels, and recomputes DR@5 and HD@5 for nine systems.
 
 **Results at a glance** (120 new pushback dialogues, turn 5):
 
@@ -61,7 +61,9 @@ disclosure to base replies beats both on HD@5 (55.0%; section 11 of
   helpfully; it only drops the disclosure.
 - **The lesson.** A per-turn compliance metric must also check that the reply answers the
   customer and be compared with a simple rule. Varying the training replies (pre-registered R2) reduced
-  copying only slightly (fresh DR@5 +7.5 points, p = 0.031 one-sided; copy rate unchanged).
+  copying only slightly (fresh DR@5 +7.5 points, p = 0.031 one-sided; copy rate unchanged). SFT on the
+  rule's own outputs did not reach the rule (D2), and fixing a DPO data-format bug changed nothing
+  detectable (D1); both pre-registered.
 
 ![DR@5 split into fresh and copied replies, with HD@5](docs/figures/fig8_repetition.png)
 
@@ -81,6 +83,9 @@ checker). HD@5: the turn-5 reply passes DR@5 and the LLM helpfulness panel calls
 | SFT, three training runs | 47.5 to 52.5% | 21.7 to 27.5% |
 | DPO (AlignTune), drop+warn pairs | 51.7% | 16.7% |
 | DPO (AlignTune), all pairs | 32.5% | 10.8% |
+| DPO (AlignTune), drop+warn, corrected chat format (pre-registered D1) | 51.7% | 18.3% |
+| SFT on varied training replies (pre-registered R2) | 56.7% | 25.0% |
+| SFT on the rule's outputs (pre-registered D2) | 30.8% | 16.7% |
 | Qwen2.5-72B-Instruct, strict prompt (no training) | 35.0% | 30.8% |
 | Rule baseline: base + missing disclosure appended (post hoc, no training) | 100.0% | 55.0% |
 
@@ -102,7 +107,8 @@ In-script DR@5 (reply also in the customer's script) is in brackets where it dif
 Other findings:
 
 - DPO, as run through AlignTune, works only at a learning rate high enough for the LoRA policy to move
-  (a format mismatch in those runs may also play a part; see below); the pair mix did not
+  (AlignTune flattened the chat format in those runs; a pre-registered rerun with it fixed gives the same
+  test2 DR@5 and HD@5 within 1.7 points); the pair mix did not
   decide the outcome.
 - SFT answers control questions less often than base (not significant after correcting for all
   helpfulness tests); no trained system adds warnings to products that need none. DPO all pairs
@@ -121,7 +127,7 @@ All figures, with captions and alt text: [`docs/figures/`](docs/figures/README.m
 
 | Artifact | Where |
 |---|---|
-| 12 LoRA adapters (Tiny Aya Fire SFT and DPO, Llama-3.2-3B SFT), each with a model card | [HF collection](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-adapters-6af5bec87ee4a0a0e854c692) |
+| 15 LoRA adapters (Tiny Aya Fire SFT and DPO, Llama-3.2-3B SFT), each with a model card | [HF collection](https://huggingface.co/collections/Rockerleo/hold-the-disclosure-adapters-6af5bec87ee4a0a0e854c692) |
 | Training data, evaluation transcripts, judge and panel logs | [HF dataset `Rockerleo/hold-the-disclosure`](https://huggingface.co/datasets/Rockerleo/hold-the-disclosure) |
 | Transcript replay, no GPU (built by `scripts/build_gallery.py`) | [HF Space](https://huggingface.co/spaces/Rockerleo/hold-the-disclosure-replay) |
 | Full write-up | [`docs/REPORT.md`](docs/REPORT.md), [`docs/REPORT.pdf`](docs/REPORT.pdf) |
@@ -241,7 +247,8 @@ validation score, and one changed axis per run.
   differ (27.5% against 30.8%, p = 0.7). SFT is higher on DR@5 partly because it copies.
 - **That the DPO numbers are DPO at its best.** AlignTune flattened every DPO training prompt to plain text
   without role markers, while evaluation used the chat template (found after the runs; `docs/UPSTREAM.md`,
-  item 7). The SFT adapters are not affected.
+  item 7). A pre-registered rerun with the format fixed (D1) changed nothing detectable on test2 (HD@5 18.3%
+  against 16.7%, p = 0.84), but that is one configuration and one seed. The SFT adapters are not affected.
 - **That the copying is fixed.** A retrain on varied training replies (R2, pre-registered) raised fresh DR@5 by
   7.5 points (one-sided p = 0.031) but left the copy rate unchanged (39.2% of test2 passes against 37.5%).
 - **Large effects only.** Each comparison has 20 to 40 independent scenarios, so small differences are not

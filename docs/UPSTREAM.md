@@ -64,4 +64,6 @@ Found while building this project. Each one is a candidate issue or PR for the L
   apply the tokenizer's chat template to `prompt` before flattening.
 - **Workaround here:** `scripts/train_aligntune.py --chat-template` passes rows already rendered with
   the tokenizer's chat template (`htd.train_data.chat_template_pairs`); plain strings pass AlignTune
-  unchanged. Checked locally on all 858 drop+warn rows (2026-11-14).
+  unchanged. Checked locally on all 858 drop+warn rows (2026-11-14). The corrected run trained with no
+  TRL mismatch warning; its test2 results match the flattened run (DR@5 51.7% both, HD@5 18.3% against
+  16.7%, p = 0.84; `docs/RESULTS_ROBUSTNESS.md`, section 13), so for our data the bug did not change the outcome.

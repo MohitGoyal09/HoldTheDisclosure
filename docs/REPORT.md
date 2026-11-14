@@ -27,15 +27,15 @@ pre-registered). The gain holds over training runs, a second model family, held-
 shuffled turn order.
 
 A post hoc check found that most passing turn-5 replies of trained systems copy an earlier
-reply of the same model (29% of SFT dialogues on the new lines pass with a verbatim copy;
-instructed Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
+reply of the same model (instructed
+Qwen2.5-72B almost never copies). We then pre-registered a test of what copying
 costs. A three-family LLM panel rates copied passes helpful far less often than
 fresh ones in the same dialogues (34.5% against 66.4%, p = 0.0001). Counting only turn-5 replies
 that keep the disclosure and help (HD@5), SFT still beats base by 23.3 points (27.5% against
 4.2%, p = 0.0002) and is not detectably different from instructed Qwen2.5-72B (30.8%, p = 0.7). About a third of SFT's
 DR@5 gain is repetition that does not answer the customer. A post hoc rule appending the
 missing disclosure sentence to every base reply does better still (HD@5 55.0%; 47.5% by meaning-based judges). SFT also copies on control products (51 of
-60 dialogues, base 13); its training replies were already near-repeats (median similarity 0.86).
+60 dialogues, base 13).
 
 Other costs: no trained system adds a warning to products that need none; SFT answers control
 questions less often than base (not significant after correction); one
@@ -43,7 +43,8 @@ DPO mix often answers Hinglish customers in Devanagari.
 
 Lessons: a per-turn compliance metric must also check that the
 reply answers the customer and be compared with a simple rule; varying the training replies
-reduced copying only slightly (pre-registered). Limitations:
+barely changed copying, fixing an AlignTune format bug left DPO unchanged, and SFT on the rule's
+outputs did not reach the rule (all pre-registered). Limitations:
 one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
 helpfulness from model labels, and a post hoc repetition finding, then tested as
 pre-registered. Code, data and adapters are released.
@@ -379,7 +380,8 @@ against 0%); see "Retention by repetition".
 
 All DPO runs share a format problem found after the study: AlignTune flattened each chat
 prompt to plain text without role markers, while evaluation used the chat template
-(Limitations; `docs/UPSTREAM.md`, item 7). Read the DPO results with that in mind.
+(`docs/UPSTREAM.md`, item 7). A pre-registered rerun with the format fixed (D1, below) gives the same
+test2 DR@5 (51.7%) and HD@5 within 1.7 points, so the numbers in this section stand.
 
 A 2x2 grid crosses pair mix (all pairs, or drop and warn only) with learning rate (5e-6, 5e-5).
 Pooled DR@5 over 60 dialogues (`docs/RESULTS_FULL.md`, Fig. 3):
@@ -720,8 +722,8 @@ should be compared with such a rule before its gain is credited to training.
 
 Checker DR@5 is 100% for the rule by construction, so we registered a check that does not use the sheet's
 keywords before running it (`docs/PREREGISTRATION.md`, final study; `docs/RESULTS_ROBUSTNESS.md`, section 12).
-The reference panel (Llama-3.3-70B, DeepSeek-V3, gpt-oss-120b) judged every test2 turn-5 reply of nine systems
-(3,240 labels, 0 errors).
+The reference panel (Llama-3.3-70B, DeepSeek-V3, gpt-oss-120b) judged every test2 turn-5 reply
+(4,320 labels for twelve systems, 0 errors).
 
 | system (test2) | checker DR@5 | panel DR@5 | panel HD@5 |
 |---|---|---|---|
@@ -737,8 +739,10 @@ and in others the base text around the appended sentence downplays or contradict
 rule beats SFT v6 by 15.8 points (95% CI 4.2 to 27.5, p = 0.015; J1a). The panel also credits SFT with more
 disclosures than the checker does (66.7% against 52.5%), so the checker is conservative for trained systems, and
 on panel HD@5 SFT v6 and instructed Qwen2.5-72B are again close (31.7% and 30.0%). Agreement among the three
-panel models is moderate for helpfulness (Fleiss' kappa 0.450 over 1,080 replies) and substantial for
-disclosure (0.647).
+panel models is moderate for helpfulness (Fleiss' kappa 0.456 over 1,440 replies) and substantial for
+disclosure (0.633).
+
+![Fig. 9. HD@5 on test2 with the rule checker (filled) and with the meaning-based panel (hollow) as the disclosure test; helpfulness from the panel in both. 95% Wilson intervals over 120 dialogues. Model labels.](figures/fig9_hd_measures.png)
 
 ### Retrain on varied replies (R2, pre-registered)
 
@@ -760,6 +764,38 @@ one-sided p = 0.031). The secondaries do not follow. The share of passes that ar
 still copies in 47 of 60 dialogues (seed 1: 48). Near-repeated training replies are therefore at most a
 small part of the cause. Most of the copying comes from elsewhere, plausibly the per-turn SFT objective on
 dialogues whose earlier turns already contain the disclosure. One training seed.
+
+### Corrected DPO format and rule distillation (D1 and D2, pre-registered)
+
+Both were registered before either adapter was trained (`docs/PREREGISTRATION.md`, final study;
+`docs/RESULTS_ROBUSTNESS.md`, section 13); the two primaries are Holm-corrected together.
+
+- **D1** retrains DPO drop+warn (lr 5e-5, seed 0) with every row passed as a chat-template string
+  (`--chat-template`), so AlignTune no longer flattens it. Nothing else changes.
+- **D2** asks whether the rule can be moved into the weights. Base Tiny Aya replays the training dialogues
+  with the rule applied turn by turn (`scripts/rule_targets.py`; 152 of 170 records pass the gate, 762 SFT rows),
+  and SFT trains on these targets exactly like SFT seed 1.
+
+| test2 (120 dialogues) | DR@5 | pass, similarity >= 0.9 | fresh DR@5 | HD@5 | panel HD@5 |
+|---|---|---|---|---|---|
+| base | 16.7% | 6.7% | 10.0% | 4.2% | 2.5% |
+| DPO drop+warn, flattened format | 51.7% | 40.0% | 11.7% | 16.7% | 15.8% |
+| DPO drop+warn, chat format (D1) | 51.7% | 36.7% | 15.0% | 18.3% | 17.5% |
+| SFT seed 1 | 47.5% | 37.5% | 10.0% | 21.7% | 32.5% |
+| SFT rule-distilled (D2) | 30.8% | 23.3% | 7.5% | 16.7% | 15.0% |
+| base + appended disclosure (rule) | 100.0% | 28.3% | 71.7% | 55.0% | 47.5% |
+
+**D1: no detectable change.** HD@5 +1.7 points (95% CI -6.7 to +10.0, p = 0.84, Holm p = 1); DR@5 is
+identical. Against base the corrected run keeps its gain (DR@5 +35.0 points, p = 5e-05; HD@5 +14.2, p = 0.00095).
+On test its DR@5 is 55.0% against 41.7% for the flattened run (p = 0.16) and 13.3% for base (p = 0.00035). The
+format bug does not explain DPO's results here. One seed and one configuration.
+
+**D2: not supported.** HD@5 is 5.0 points lower than SFT seed 1 (95% CI -13.3 to +3.3, one-sided p = 0.84,
+Holm p = 1) and 38.3 points below the rule itself (p = 5e-05). DR@5 falls by turn (100%, 38%, 43%, 33%, 37% at
+turns 1 to 5), and replies are long (mean 97 words over all turns; base 82, SFT seed 1 48). Our reading: the appended sentence is a
+small share of each target, so SFT mostly learns base's style and keeps the disclosure only at turn 1. No
+unneeded warnings on control products (0 of 60). The rule works at serving time; plain SFT on its outputs
+does not carry it over.
 
 ### Other checks
 
@@ -802,14 +838,14 @@ and DPO intervals are wide.
   (through their key facts) the checker's patterns, so checker DR@5 is 100% for the rule by construction
   and favours the rule-distilled system. The meaning-based panel credits the rule with 69.2% and still
   ranks it above SFT on HD@5 (J1, section 12 of `docs/RESULTS_ROBUSTNESS.md`); it is also model labels,
-  and its three models agree only moderately on helpfulness (Fleiss' kappa 0.450).
+  and its three models agree only moderately on helpfulness (Fleiss' kappa 0.456).
 - With 40 independent scenarios, a 95% interval for a difference between two systems spans about 20 to
   27 points (sections 9 and 11 of `docs/RESULTS_ROBUSTNESS.md`). A non-significant difference is not evidence of equality (for example SFT against
   instructed Qwen2.5-72B on HD@5: -9.2 to +15.8 points).
-- Every DPO adapter was trained on prompts that AlignTune had flattened to plain text without
-  role markers or the chat template, and was evaluated with the chat template (found after the
-  runs; `docs/UPSTREAM.md`, item 7). The DPO results are therefore for a train and serve format
-  mismatch and may understate what DPO can do here. The SFT adapters are not affected.
+- Every DPO adapter in the main study was trained on prompts that AlignTune had flattened to plain
+  text without role markers, and was evaluated with the chat template (found after the runs;
+  `docs/UPSTREAM.md`, item 7). A pre-registered rerun with the format fixed (D1) changed neither
+  DR@5 nor HD@5 detectably on test2, for one configuration and one seed. The SFT adapters are not affected.
 - One bank, ten products, synthetic dialogues. Real product documents are longer and less
   consistent than a product sheet.
 - The pushback ladder is scripted. An adaptive customer who argues with what the bot actually
@@ -863,6 +899,8 @@ In order of priority. Each item answers one or more limitations above.
 1. **Fix the repetition.** R2 (above) retrains SFT on rewritten, varied replies. Next: add
    copied replies as a rejected type for DPO, and make a responsive measure (HD@5, or a judge
    label for "states the disclosure and answers the request") the main metric.
+1. **Move the rule into the weights.** Plain SFT on the rule's outputs failed (D2). Next: weight the
+   loss on the disclosure tokens, or use DPO with the rule's reply as chosen and base's reply as rejected.
 2. **Human labels.** Two or more native Hindi speakers label the published 100-reply blind sheet
    without seeing model names, and we report Cohen's kappa between them. This replaces the model
    labels as the check on the rule checker and the judges.

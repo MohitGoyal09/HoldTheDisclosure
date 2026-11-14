@@ -28,6 +28,9 @@ SYSTEMS = [
     ("sft", "SFT (main run)", "followup/eval/sft_test2.jsonl"),
     ("dpo", "DPO drop+warn, lr 5e-5", "followup/eval/at_drop_lr5e5_test2.jsonl"),
     ("qwen_strict", "Qwen2.5-72B, strict prompt", "robustness/roi_strict/qwen72b_strict_test2.jsonl"),
+    ("sft_varied", "SFT, varied replies (R2)", "followup/eval/sft_varied_s1_test2.jsonl"),
+    ("sft_rule", "SFT, rule-distilled (D2)", "followup/eval/sft_rule_s1_test2.jsonl"),
+    ("dpo_chat", "DPO drop+warn, chat format (D1)", "followup/eval/aligntune_dpo_drop_lr5e5_chat_test2.jsonl"),
 ]
 COPY_CUT = 0.9
 
