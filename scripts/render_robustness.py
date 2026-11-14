@@ -708,6 +708,9 @@ def main() -> None:
                     if (a.disc_judges / f"panel_{n}.jsonl").exists()]
             if len(disc) == 3:
                 j_rows = sys_by_split["test2"] + [("base + appended disclosure (rule)", a.eval / "base_rule_test2.jsonl")]
+                j_rows += [(n, f) for n, f in (("SFT varied (R2)", a.varied / "sft_varied_s1_test2.jsonl"),
+                                               ("DPO drop+warn (chat format)", a.dpo_chat / "aligntune_dpo_drop_lr5e5_chat_test2.jsonl"),
+                                               ("SFT rule-distilled", a.rule_sft / "sft_rule_s1_test2.jsonl")) if f.exists()]
                 lines += section_j1(sheet, j_rows, [x + y for x, y in zip(t2, rule)], disc)
     a.out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {a.out}")

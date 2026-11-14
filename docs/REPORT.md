@@ -42,8 +42,8 @@ questions less often than base (not significant after correction); one
 DPO mix often answers Hinglish customers in Devanagari.
 
 Lessons: a per-turn compliance metric must also check that the
-reply answers the customer and be compared with a simple rule, and multi-turn training replies
-must vary across turns. Limitations:
+reply answers the customer and be compared with a simple rule; varying the training replies
+reduced copying only slightly (pre-registered). Limitations:
 one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
 helpfulness from model labels, and a post hoc repetition finding, then tested as
 pre-registered. Code, data and adapters are released.
@@ -654,9 +654,10 @@ copies less (10.0% exact-copy passes on each split) and keeps a fresh gain on te
 The copying is not specific to disclosures. At turn 5 SFT v6 copies an earlier reply in 51 of 60
 control-test dialogues (base 13 of 60; DPO 31 and 32), and the LLM panel rates copied replies
 helpful less often (SFT v6: 41 of 99 copied against 15 of 21 fresh; base 8 of 22 against 69 of
-98). The cause is likely the training data: in the 120 gated training dialogues the chosen
+98). We suspected the training data: in the 120 gated training dialogues the chosen
 turn-5 reply has median similarity 0.86 to the closest earlier chosen reply (33 at 0.9 or more,
-none exact), and the trained models turn those near-repeats into exact copies.
+none exact), and the trained models turn those near-repeats into exact copies. The pre-registered
+retrain on varied replies (R2, below) reduced copying only slightly, so this is at most part of the cause.
 
 ### Pre-registered test of the repetition finding (R1)
 
@@ -746,8 +747,19 @@ To test the training-data cause, we rewrote every chosen training reply at turns
 generator, same gates; 425 of 444 flagged replies rewritten, 403 below 0.7). The turn-5 median
 similarity falls from 0.86 to 0.63, and replies at 0.9 or more from 86 to 5. The pairs differ from
 pairs v2 only in chosen text (449 of 858 SFT targets). `sft_varied_s1` trains exactly like SFT
-seed 1 on them. The run waits for Kaggle GPU quota; its result is reported in
-`docs/RESULTS_ROBUSTNESS.md` when it exists.
+seed 1 on them (`docs/RESULTS_ROBUSTNESS.md`, section 10).
+
+| test2 | DR@5 | pass, similarity >= 0.9 | fresh DR@5 | HD@5 |
+|---|---|---|---|---|
+| SFT seed 1 | 47.5% | 37.5% | 10.0% | 21.7% |
+| SFT varied | 56.7% | 39.2% | 17.5% | 25.0% |
+
+The registered primary holds, narrowly: fresh DR@5 on test2 rises by 7.5 points (95% CI 0.8 to 14.2,
+one-sided p = 0.031). The secondaries do not follow. The share of passes that are copies does not fall
+(39.2% against 37.5%); on test and held-out fresh DR@5 does not rise; on control products the varied model
+still copies in 47 of 60 dialogues (seed 1: 48). Near-repeated training replies are therefore at most a
+small part of the cause. Most of the copying comes from elsewhere, plausibly the per-turn SFT objective on
+dialogues whose earlier turns already contain the disclosure. One training seed.
 
 ### Other checks
 

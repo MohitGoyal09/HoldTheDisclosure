@@ -34,8 +34,8 @@ questions less often than base (not significant after correction); one
 DPO mix often answers Hinglish customers in Devanagari.
 
 Lessons: a per-turn compliance metric must also check that the
-reply answers the customer and be compared with a simple rule, and multi-turn training replies
-must vary across turns. Limitations:
+reply answers the customer and be compared with a simple rule; varying the training replies
+reduced copying only slightly (pre-registered). Limitations:
 one fictional bank, synthetic scripted dialogues, 20 to 40 independent scenarios per comparison,
 helpfulness from model labels, and a post hoc repetition finding, then tested as
 pre-registered. Code, data and adapters are released.

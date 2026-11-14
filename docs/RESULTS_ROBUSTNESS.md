@@ -306,6 +306,29 @@ R1c. HD@5, Qwen2.5-72B, strict prompt against SFT v6: +3.3 points [-9.2, +15.8],
 R1a (primary). Among DR@5 passes on test2, pooled over the systems above: helpful when copied 88/255 (34.5%), when fresh 89/134 (66.4%); difference +31.9 points, one-sided p = 0.0001 (copy labels permuted within dialogue, 10,000 draws).
 Secondary, same test on test (systems with test helpfulness rows): copied 69/209, fresh 34/56, difference +27.7 points, one-sided p = 0.0005.
 
+## 10. Retrain on varied training replies (R2)
+
+Registered 2026-11-13 before the varied data existed. `sft_varied_s1` trains exactly like SFT seed 1 on pairs whose repeated chosen replies were rewritten (`scripts/vary_chosen.py`). Primary: fresh DR@5 on test2 against SFT seed 1, scenario-level sign-flip test, one-sided (varied higher; half the two-sided p when the difference is positive).
+
+| split | system | DR@5 | pass, similarity >= 0.9 | fresh DR@5 | HD@5 |
+|---|---|---|---|---|---|
+| test2 | base | 16.7% | 6.7% | 10.0% | 4.2% |
+| test2 | SFT seed 1 | 47.5% | 37.5% | 10.0% | 21.7% |
+| test2 | SFT varied | 56.7% | 39.2% | 17.5% | 25.0% |
+| test | base | 13.3% | 6.7% | 6.7% | not measured |
+| test | SFT seed 1 | 45.0% | 41.7% | 3.3% | not measured |
+| test | SFT varied | 45.0% | 38.3% | 6.7% | not measured |
+| heldout | base | 28.3% | 13.3% | 15.0% | not measured |
+| heldout | SFT seed 1 | 70.0% | 56.7% | 13.3% | not measured |
+| heldout | SFT varied | 66.7% | 56.7% | 10.0% | not measured |
+
+R2 (primary). Fresh DR@5 on test2, SFT varied against SFT seed 1: +7.5 points [+0.8, +14.2], one-sided p = 0.031.
+Secondary. fresh DR@5 on test2, SFT varied against base: +7.5 points [-0.8, +15.8], p = 0.12.
+Secondary. HD@5 on test2, SFT varied against base: +20.8 points [+11.7, +30.0], p = 5e-05.
+Secondary. fresh DR@5 on test, SFT varied against base: +0.0 points [-8.3, +8.3], p = 1.
+Secondary. fresh DR@5 on heldout, SFT varied against base: -5.0 points [-18.3, +8.3], p = 0.64.
+Control test: base 0/60 unneeded warnings, 13/60 copied at turn 5; SFT seed 1 0/60 unneeded warnings, 48/60 copied at turn 5; SFT varied 0/60 unneeded warnings, 47/60 copied at turn 5.
+
 ## 11. Rule baseline: append the missing disclosure to every base reply (post hoc)
 
 Added 2026-11-14 after the study, not pre-registered. Each base reply on test2 gets the product sheet's statement for every disclosure the rule checker finds missing, in the customer's script. Later turns were generated from the unedited history, so this approximates a deployed filter. Panel as in section 9 (model labels). Scenario-level tests against the rule baseline.
@@ -332,7 +355,8 @@ Registered 2026-11-14 before any of these labels existed (`docs/PREREGISTRATION.
 | DPO all pairs | 32.5% | 40.0% | 97/120 | 3 | 15.8% |
 | Qwen2.5-72B, strict prompt | 35.0% | 34.2% | 119/120 | 1 | 30.0% |
 | base + appended disclosure (rule) | 100.0% | 69.2% | 83/120 | 6 | 47.5% |
+| SFT varied (R2) | 56.7% | 62.5% | 113/120 | 2 | 30.0% |
 
 J1a (primary). Panel HD@5, rule baseline against SFT v6: +15.8 points [+4.2, +27.5], scenario p = 0.015.
-J1c. Fleiss' kappa, helpfulness panel on all test2 rows: 0.450 (1080 replies); disclosure panel on the rows above: 0.647 (1080 replies).
+J1c. Fleiss' kappa, helpfulness panel on all test2 rows: 0.449 (1200 replies); disclosure panel on the rows above: 0.649 (1200 replies).
 

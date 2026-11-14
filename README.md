@@ -60,7 +60,8 @@ disclosure to base replies beats both on HD@5 (55.0%; section 11 of
   [`docs/RESULTS_ROBUSTNESS.md`](docs/RESULTS_ROBUSTNESS.md), section 11). Base already answers
   helpfully; it only drops the disclosure.
 - **The lesson.** A per-turn compliance metric must also check that the reply answers the
-  customer, and multi-turn training replies must vary across turns.
+  customer and be compared with a simple rule. Varying the training replies (pre-registered R2) reduced
+  copying only slightly (fresh DR@5 +7.5 points, p = 0.031 one-sided; copy rate unchanged).
 
 ![DR@5 split into fresh and copied replies, with HD@5](docs/figures/fig8_repetition.png)
 
@@ -241,8 +242,8 @@ validation score, and one changed axis per run.
 - **That the DPO numbers are DPO at its best.** AlignTune flattened every DPO training prompt to plain text
   without role markers, while evaluation used the chat template (found after the runs; `docs/UPSTREAM.md`,
   item 7). The SFT adapters are not affected.
-- **That the copying is fixed.** A retrain on varied training replies (R2, pre-registered) is queued; its result
-  is not in this release.
+- **That the copying is fixed.** A retrain on varied training replies (R2, pre-registered) raised fresh DR@5 by
+  7.5 points (one-sided p = 0.031) but left the copy rate unchanged (39.2% of test2 passes against 37.5%).
 - **Large effects only.** Each comparison has 20 to 40 independent scenarios, so small differences are not
   detectable. The repetition finding was found after the main study and then tested with a pre-registered
   analysis. Every deviation from the pre-registration is listed in the report.

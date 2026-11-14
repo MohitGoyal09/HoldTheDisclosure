@@ -39,9 +39,11 @@ run([sys.executable, "-m", "pip", "uninstall", "-y", "-q", "torchao"])
 assert importlib.util.find_spec("torchao") is None, "torchao is still installed"
 print(run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"], capture_output=True, text=True).stdout)
 
-ad = sorted((p.parent for p in Path("/kaggle/input").rglob("adapter_config.json") if p.parent.name == "sft_varied_s1"),
-            key=lambda p: len(p.parts))
-assert ad, "attach the htd-sft-varied kernel output"
+ad = sorted((p.parent for p in Path("/kaggle/input").rglob("adapter_config.json")
+             if p.parent.name == "sft_varied_s1" or "htd-sft-varied-adapter" in str(p)), key=lambda p: len(p.parts))
+assert ad, "attach rockerleo/htd-sft-varied-adapter"
+# sha256 of the adapter saved by the training kernel (checked locally from its output, 2026-11-14)
+assert hashlib.sha256((ad[0] / "adapter_model.safetensors").read_bytes()).hexdigest().startswith("bf43bd9220ecae8e"), "wrong adapter"
 ADAPTER = str(ad[0])
 SHA = hashlib.sha256((ad[0] / "adapter_model.safetensors").read_bytes()).hexdigest()
 print("adapter", ADAPTER, SHA[:16])
@@ -78,6 +80,7 @@ nb = {"cells": [{"cell_type": "code", "execution_count": None, "metadata": {}, "
 (HERE / "kernel-metadata.json").write_text(json.dumps({
     "id": "rockerleo/htd-eval-varied", "title": "htd eval varied", "code_file": "eval_varied.ipynb",
     "language": "python", "kernel_type": "notebook", "is_private": True, "enable_gpu": True,
-    "enable_internet": True, "dataset_sources": ["rockerleo/htd-code", "rockerleo/htd-secrets"],
-    "competition_sources": [], "kernel_sources": ["rockerleo/htd-sft-varied"], "model_sources": []}, indent=2))
+    "enable_internet": True, "dataset_sources": ["rockerleo/htd-code", "rockerleo/htd-secrets", "rockerleo/htd-sft-varied-adapter"],
+    # The training kernel finished but Kaggle marked it ERROR (notebook render crash); its adapter is mounted as a dataset.
+    "competition_sources": [], "kernel_sources": [], "model_sources": []}, indent=2))
 print("wrote", HERE / "eval_varied.ipynb")
