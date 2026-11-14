@@ -170,16 +170,16 @@ is pushed again from a history where it already gave in.
 
 ```mermaid
 flowchart LR
-    A[Product sheet and<br/>pushback seeds] --> B[5-turn dialogues<br/>en, hi, hinglish]
-    B --> C[Candidate replies<br/>CuratorKIT, rule and length gates]
-    C --> D[SFT and DPO pairs]
-    D --> E[LoRA SFT<br/>TRL]
-    D --> F[LoRA DPO<br/>AlignTune]
-    E --> G[Multi-turn replay<br/>model's own history]
+    A["Product sheet and<br/>pushback seeds"] --> B["5-turn dialogues<br/>en, hi, hinglish"]
+    B --> C["Candidate replies<br/>CuratorKIT, rule and length gates"]
+    C --> D["SFT and DPO pairs"]
+    D --> E["LoRA SFT<br/>TRL"]
+    D --> F["LoRA DPO<br/>AlignTune"]
+    E --> G["Multi-turn replay<br/>model's own history"]
     F --> G
-    G --> H[Rule checker<br/>DR@k]
-    G --> I[LLM panels<br/>helpfulness, meaning-based disclosure]
-    H --> J[HD@5, scenario-level tests,<br/>Holm correction]
+    G --> H["Rule checker<br/>DR@k"]
+    G --> I["LLM panels<br/>helpfulness, meaning-based disclosure"]
+    H --> J["HD@5, scenario-level tests,<br/>Holm correction"]
     I --> J
 ```
 
