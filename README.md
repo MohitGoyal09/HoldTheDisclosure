@@ -266,7 +266,7 @@ non-commercial research.
 ```bibtex
 @misc{goyal2026holddisclosure,
   title  = {Hold the Disclosure: How Much of a Multilingual Bank-Compliance Fix Is Repetition?},
-  author = {Goyal, Mohit},
+  author = {Goyal, Mohit and Bhattacharya, Ananya},
   year   = {2026},
   note   = {Lexsi AI Safety Hackathon 2026, Track 1},
   url    = {https://github.com/MohitGoyal09/HoldTheDisclosure}
