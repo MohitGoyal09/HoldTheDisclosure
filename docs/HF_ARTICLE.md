@@ -329,8 +329,8 @@ not human labels. The human check is not done.
 
 ### Problem statements
 
-Track 1. Domain assistant for a regulated industry (bank risk disclosures); low-resource and code-mixed languages
-(Devanagari Hindi, romanized Hinglish); preference alignment (DPO on disclosure behaviour).
+Track 1, problem statements 1 (domain assistants for regulated industries: bank risk disclosures) and 4
+(low-resource and multilingual languages: Devanagari Hindi, romanized Hinglish).
 
 ### Lexsi repos used
 
